@@ -58,13 +58,23 @@ section[data-testid="stSidebar"] .stButton > button > div { justify-content: fle
 section[data-testid="stSidebar"] .stButton > button p {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem;
 }
-section[data-testid="stSidebar"] .st-key-new_chat { margin-bottom: 0.6rem; }
-section[data-testid="stSidebar"] .st-key-new_chat button {
-  width: 2rem; min-height: 2rem; height: 2rem; padding: 0; justify-content: center;
-  border: 1px solid var(--line); background: #fff;
+/* New chat: Claude-style round accent button with a white plus */
+section[data-testid="stSidebar"] .st-key-new_chat { margin: 0.1rem 0 0.7rem 0.2rem; }
+section[data-testid="stSidebar"] .st-key-new_chat button,
+section[data-testid="stSidebar"] .st-key-new_chat button:focus:not(:active) {
+  width: 1.9rem; min-height: 1.9rem; height: 1.9rem; padding: 0; border-radius: 50%;
+  justify-content: center; border: none; background: var(--accent); color: #fff;
+  box-shadow: 0 1px 2px rgba(22, 25, 31, 0.15);
+  transition: background 0.15s ease, transform 0.15s ease;
 }
+section[data-testid="stSidebar"] .st-key-new_chat button:hover {
+  background: #c2441f; color: #fff; transform: scale(1.06);
+}
+section[data-testid="stSidebar"] .st-key-new_chat button:active { background: #a93a1a; color: #fff; }
 section[data-testid="stSidebar"] .st-key-new_chat button > div { justify-content: center; }
-section[data-testid="stSidebar"] .st-key-new_chat button p { font-size: 1.15rem; line-height: 1; }
+section[data-testid="stSidebar"] .st-key-new_chat button p {
+  font-size: 1.25rem; line-height: 1; font-weight: 500; color: #fff; margin: 0 0 1px 0;
+}
 section[data-testid="stSidebar"] .st-key-open_settings {
   margin-top: auto; padding-top: 0.4rem; border-top: 1px solid var(--line);
 }
