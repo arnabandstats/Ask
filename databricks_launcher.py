@@ -8,10 +8,12 @@
 # MAGIC **How to use**
 # MAGIC 1. Put this repo in your workspace (Git folder / Repos, or import the folder) — keep this
 # MAGIC    notebook in the repo root, next to `app.py`.
-# MAGIC 2. Store your API key in a secret scope, e.g.
-# MAGIC    `databricks secrets put-secret <scope> openai-api-key`.
-# MAGIC 3. Fill in the widgets at the top, then **Run all**. The last cells print the link, show
-# MAGIC    the log, and stop the app.
+# MAGIC 2. The API key is read from the Databricks secret **`ask` / `openai-api-key`** (the widget
+# MAGIC    defaults). It was stored once from a terminal with:
+# MAGIC    `databricks secrets create-scope ask` then `databricks secrets put-secret ask openai-api-key`.
+# MAGIC    If you used other names, change the two secret widgets.
+# MAGIC 3. **Run all**. Cell 2 checks the secret before anything is installed; the last cells print
+# MAGIC    the link, show the log, back up chats and stop the app.
 # MAGIC
 # MAGIC The app keeps running while this cluster is up (you can detach the notebook). It stops when
 # MAGIC the cluster terminates or when you run **Stop the app**.
@@ -32,7 +34,7 @@
 # COMMAND ----------
 
 dbutils.widgets.text("port", "8501", "Port")
-dbutils.widgets.text("secret_scope", "", "Secret scope (API key)")
+dbutils.widgets.text("secret_scope", "ask", "Secret scope (API key)")
 dbutils.widgets.text("secret_key", "openai-api-key", "Secret key name")
 dbutils.widgets.dropdown("use_azure", "false", ["false", "true"], "Use Azure OpenAI")
 dbutils.widgets.text("azure_endpoint", "", "Azure endpoint (if Azure)")
@@ -44,7 +46,44 @@ dbutils.widgets.text("backup_dir", "", "Backup folder, e.g. /Volumes/cat/schema/
 
 # COMMAND ----------
 
-# MAGIC %md ## 2 · Install dependencies
+# MAGIC %md ## 2 · Check the API key secret
+# MAGIC Fails fast, before the install, if the secret is missing or you can't read it. The value is
+# MAGIC never printed (Databricks would show it as `[REDACTED]` anyway).
+
+# COMMAND ----------
+
+
+def check_api_key_secret():
+    """Return (scope, key) after confirming the secret exists and is readable; raise a clear error otherwise."""
+    scope = dbutils.widgets.get("secret_scope").strip()
+    key = dbutils.widgets.get("secret_key").strip()
+    if not scope:
+        print("No secret scope set: the app will use an API key defined on the cluster, if any.")
+        return None, None
+    scopes = [s.name for s in dbutils.secrets.listScopes()]
+    if scope not in scopes:
+        raise ValueError(f"Secret scope '{scope}' not found (or you have no access). "
+                         f"Scopes you can see: {', '.join(sorted(scopes)) or 'none'}. "
+                         f"Create it with: databricks secrets create-scope {scope}")
+    keys = [k.key for k in dbutils.secrets.list(scope)]
+    if key not in keys:
+        raise ValueError(f"Key '{key}' not found in scope '{scope}'. Keys there: "
+                         f"{', '.join(sorted(keys)) or 'none'}. "
+                         f"Add it with: databricks secrets put-secret {scope} {key}")
+    value = dbutils.secrets.get(scope, key)
+    if not value or not value.strip():
+        raise ValueError(f"Secret '{scope}/{key}' is empty. Store the key again with put-secret.")
+    if value != value.strip():
+        print("Note: the stored key has leading/trailing whitespace; it will be trimmed.")
+    print(f"API key found in secret '{scope}/{key}' ({len(value.strip())} characters).")
+    return scope, key
+
+
+check_api_key_secret()
+
+# COMMAND ----------
+
+# MAGIC %md ## 3 · Install dependencies
 # MAGIC Uses the repo's `requirements.txt`, swapping `opencv-python` for `opencv-python-headless`
 # MAGIC (clusters have no display libraries, and the GUI build fails to import there).
 
@@ -80,7 +119,7 @@ dbutils.library.restartPython()
 
 # COMMAND ----------
 
-# MAGIC %md ## 3 · Start the app
+# MAGIC %md ## 4 · Start the app
 
 # COMMAND ----------
 
@@ -108,12 +147,12 @@ if dbutils.widgets.get("use_azure") == "true":
     env["AZURE_OPENAI_BASE_URL"] = dbutils.widgets.get("azure_endpoint").strip()
     env["AZURE_OPENAI_VERSION"] = dbutils.widgets.get("azure_api_version").strip()
     if scope:
-        env["AZURE_OPENAI_KEY"] = dbutils.secrets.get(scope, key)
+        env["AZURE_OPENAI_KEY"] = dbutils.secrets.get(scope, key).strip()
     assert env["AZURE_OPENAI_BASE_URL"], "Set the Azure endpoint widget."
 else:
     env["USE_AZURE_OPENAI"] = "false"
     if scope:
-        env["OPENAI_API_KEY"] = dbutils.secrets.get(scope, key)
+        env["OPENAI_API_KEY"] = dbutils.secrets.get(scope, key).strip()
 assert env.get("OPENAI_API_KEY") or env.get("AZURE_OPENAI_KEY") or env.get("AZURE_OPENAI_TOKEN"), (
     "No API key: set 'Secret scope' and 'Secret key name' (or define the key on the cluster).")
 for widget, var in (("default_model", "OPENAI_DEPLOYMENT_NAME"), ("deep_model", "ASK_DEEP_MODEL")):
@@ -173,7 +212,7 @@ print(f"App running (pid {proc.pid}) on port {PORT}. Chats are saved in {DATA_DI
 
 # COMMAND ----------
 
-# MAGIC %md ## 4 · Open it
+# MAGIC %md ## 5 · Open it
 
 # COMMAND ----------
 
@@ -192,7 +231,7 @@ displayHTML(f"""
 
 # COMMAND ----------
 
-# MAGIC %md ## 5 · Log (run any time)
+# MAGIC %md ## 6 · Log (run any time)
 
 # COMMAND ----------
 
@@ -202,7 +241,7 @@ print(open(f"{_data_dir}/streamlit_{PORT}.log").read()[-6000:])
 
 # COMMAND ----------
 
-# MAGIC %md ## 6 · Back up chats (run any time; also done by Stop)
+# MAGIC %md ## 7 · Back up chats (run any time; also done by Stop)
 
 # COMMAND ----------
 
@@ -235,7 +274,7 @@ backup_chats()
 
 # COMMAND ----------
 
-# MAGIC %md ## 7 · Stop the app
+# MAGIC %md ## 8 · Stop the app
 
 # COMMAND ----------
 

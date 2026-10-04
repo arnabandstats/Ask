@@ -42,9 +42,26 @@ class _Widgets:
         pass
 
 
+class _Secrets:
+    """Fake dbutils.secrets: {scope: {key: value}}."""
+
+    def __init__(self, store):
+        self.store = store
+
+    def listScopes(self):
+        return [type("S", (), {"name": s})() for s in self.store]
+
+    def list(self, scope):
+        return [type("K", (), {"key": k})() for k in self.store[scope]]
+
+    def get(self, scope, key):
+        return self.store[scope][key]
+
+
 class _FakeDbutils:
-    def __init__(self, widgets, notebook_path="/Users/me/app/databricks_launcher"):
+    def __init__(self, widgets, notebook_path="/Users/me/app/databricks_launcher", secrets=None):
         self.widgets = _Widgets(widgets)
+        self.secrets = _Secrets(secrets or {})
         path = notebook_path
 
         class _Ctx:
@@ -121,6 +138,53 @@ def test_backup_without_folder_is_a_noop(tmp_path, capsys):
     cell = _cell_containing("def backup_chats")
     exec(cell, {"dbutils": _FakeDbutils({"data_dir": str(tmp_path), "backup_dir": ""})})
     assert "No backup folder set" in capsys.readouterr().out
+
+
+class TestSecretCheck:
+    FAKE_KEY = "sk-test-" + "Z" * 40
+
+    def _run(self, store, scope="ask", key="openai-api-key"):
+        ns = {"dbutils": _FakeDbutils({"secret_scope": scope, "secret_key": key}, secrets=store)}
+        exec(_cell_containing("def check_api_key_secret"), ns)
+        return ns
+
+    def test_widget_defaults_point_at_ask_scope(self):
+        settings = _cell_containing('dbutils.widgets.text("port"')
+        assert 'dbutils.widgets.text("secret_scope", "ask"' in settings
+        assert 'dbutils.widgets.text("secret_key", "openai-api-key"' in settings
+
+    def test_found_and_value_never_printed(self, capsys):
+        self._run({"ask": {"openai-api-key": self.FAKE_KEY}})
+        out = capsys.readouterr().out
+        assert "API key found in secret 'ask/openai-api-key'" in out
+        assert self.FAKE_KEY not in out and "ZZZZ" not in out
+
+    def test_missing_scope_explains_fix(self):
+        with pytest.raises(ValueError, match="Secret scope 'ask' not found.*create-scope ask"):
+            self._run({"other": {}})
+
+    def test_missing_key_lists_available_names(self):
+        with pytest.raises(ValueError, match="Key 'openai-api-key' not found.*Keys there: azure-key"):
+            self._run({"ask": {"azure-key": "x"}})
+
+    def test_empty_secret(self):
+        with pytest.raises(ValueError, match="is empty"):
+            self._run({"ask": {"openai-api-key": "   "}})
+
+    def test_whitespace_is_flagged_and_trimmed_at_start(self, capsys):
+        self._run({"ask": {"openai-api-key": self.FAKE_KEY + "\n"}})
+        assert "will be trimmed" in capsys.readouterr().out
+        assert '.get(scope, key).strip()' in _cell_containing("subprocess.Popen")
+
+    def test_blank_scope_falls_back_to_cluster_key(self, capsys):
+        self._run({}, scope="")
+        assert "API key defined on the cluster" in capsys.readouterr().out
+
+    def test_check_runs_before_install(self):
+        cells = _cells()
+        check = next(i for i, c in enumerate(cells) if "def check_api_key_secret" in c)
+        install = next(i for i, c in enumerate(cells) if "%pip install" in c)
+        assert check < install
 
 
 @pytest.mark.parametrize("name", ["app.py", "requirements.txt"])
