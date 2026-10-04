@@ -11,12 +11,13 @@ import json
 import os
 import time
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 import pandas as pd
 
 from ask import config
+from ask.sources import databricks
 
 CODE_EXTS = {
     ".py", ".ipynb", ".r", ".sql", ".sas", ".scala", ".java", ".js", ".ts", ".tsx",
@@ -282,6 +283,9 @@ def load_path(path: Path, hint: str | None = None) -> list[Source]:
     gives one data source per file). Raises LoadError with a readable message."""
     path = Path(path)
     if not path.exists():
+        raw = str(path).replace("\\", "/")
+        if databricks.looks_like_path(raw):
+            return _load_databricks(raw, hint)
         raise LoadError(f"Path not found: {path}")
     name = path.name or str(path)
 
@@ -327,6 +331,24 @@ def load_path(path: Path, hint: str | None = None) -> list[Source]:
         raise LoadError(f"Every file in {path} was unreadable ({len(src.skipped)} skipped)")
     src.projects = detect_projects(path)
     return [src]
+
+
+def _load_databricks(raw: str, hint: str | None) -> list[Source]:
+    """A /Workspace or /Volumes path that isn't mounted here (Databricks App, laptop):
+    mirror it through the Databricks API, load the copy, and keep the Databricks path."""
+    remote = databricks.normalise(raw)
+    try:
+        local = databricks.fetch(remote)
+    except databricks.DatabricksError as exc:
+        raise LoadError(str(exc)) from exc
+    srcs = load_path(local, hint)
+    for s in srcs:
+        if local.is_dir() and s.kind == "data":     # data files in a folder keep their own path/name
+            s.path = remote + "/" + Path(s.path).relative_to(local).as_posix()
+        else:
+            s.name = PurePosixPath(remote).name or s.name
+            s.path = remote
+    return srcs
 
 
 PROJECT_MARKERS = (".git", "pyproject.toml", "setup.py", "requirements.txt", "package.json",

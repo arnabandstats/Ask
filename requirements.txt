@@ -7,6 +7,7 @@ streamlit>=1.40
 openai>=1.0
 python-dotenv
 tenacity
+databricks-sdk           # Databricks workspace/Volume paths and the app deployment
 
 # ── Data ─────────────────────────────────────────────────────
 numpy
@@ -32,5 +33,4 @@ opencv-python-headless   # no GUI needed; also imports on servers without displa
 xlsxwriter
 
 # ── Tests ────────────────────────────────────────────────────
-databricks-sdk           # launcher tests (Databricks Apps deployment)
 pytest

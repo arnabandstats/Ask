@@ -15,6 +15,7 @@ from typing import Callable
 from ask import config, preferences
 from ask.agent import faithfulness, llm_call, prompts
 from ask.agent.tools import DATA_TOOLS, SCHEMAS, TEXT_TOOLS, ToolContext, dispatch
+from ask.sources import databricks
 from ask.sources.loaders import LoadError
 from ask.sources.paths import find_paths, is_pure_load_command, kind_hint
 from ask.sources.registry import SourceRegistry
@@ -29,6 +30,12 @@ class Turn:
 
 
 def _fast_load(text: str, reg: SourceRegistry) -> Turn | None:
+    url = databricks.url_in(text)
+    if url:
+        path = databricks.path_from_url(url)
+        if path is None:                         # a browse/folders/<id> link: no path in it
+            return Turn(content=databricks.URL_HELP, meta={"kind": "load"})
+        text = text.replace(url, path)
     mentions = find_paths(text)
     if not is_pure_load_command(text, mentions):
         return None
@@ -38,11 +45,14 @@ def _fast_load(text: str, reg: SourceRegistry) -> Turn | None:
     hint = kind_hint(words)              # from the user's words, never from the path itself
     lines, changed = [], False
     for m in mentions:
-        if m.path is None:
+        target = m.path
+        if target is None and databricks.looks_like_path(m.raw):
+            target = Path(databricks.normalise(m.raw))   # fetched through the Databricks API
+        if target is None:
             lines.append(f"Path not found: `{m.raw}`. Check the spelling, or that the drive/folder is accessible.")
             continue
         try:
-            for s in reg.load(m.path, hint):
+            for s in reg.load(target, hint):
                 label = {"repo": "repo", "docs": "documents", "data": "data"}[s.kind]
                 lines.append(f"Loaded {label} **{s.name}**: {s.summary()}.")
                 changed = True

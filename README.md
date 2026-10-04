@@ -68,6 +68,14 @@ answer.
 Set the **Run mode** widget to force `databricks_app` or `cluster`. Redeploying after a
 **Pull** is just **Run all** again.
 
+**Loading Databricks paths:** in the chat, type a workspace or Volume path, e.g.
+`load /Workspace/Users/you@company.com/MLOps` or `read /Volumes/cat/schema/vol/data.csv`
+(in Databricks: ⋮ → **Copy path**; browser links don't contain the path). Inside a
+Databricks App these are read through the Databricks API as the **app's service
+principal**, so share the folder with it once: folder ⋮ → Share → add the app's service
+principal (named after the app) → **Can Read**; for a Volume, grant it `READ VOLUME`.
+On a laptop, the same paths work after `databricks auth login`.
+
 **Databricks App notes:** share it from Compute → Apps → your app → Permissions (**Can
 use**). Chats are kept in `/tmp/ask_data` inside the app and reset on redeploy. To set it up
 by hand instead: create a custom app, add a Secret resource (scope `ask`, key

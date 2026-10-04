@@ -20,6 +20,7 @@ from ask.analysis import compare as cmp
 from ask.analysis import data_query as dq
 from ask.analysis import runner
 from ask.retrieval import search as rs
+from ask.sources import databricks
 from ask.sources.loaders import LoadError
 from ask.sources.paths import find_paths
 from ask.sources.registry import SourceRegistry
@@ -75,11 +76,17 @@ def _png_artifact(ctx: ToolContext, png: bytes, title: str, group: str | None = 
 # ── tool implementations ───────────────────────────────────────────────────
 
 def t_load_path(ctx: ToolContext, path: str, kind: str | None = None) -> str:
+    if databricks.url_in(path):
+        path = databricks.path_from_url(databricks.url_in(path)) or ""
+        if not path:
+            return databricks.URL_HELP
     mentions = find_paths(path) or []
     resolved = next((m.path for m in mentions if m.path), None)
     target = resolved or Path(path.strip().strip("\"'`"))
     if not target.exists():
-        return f"Path not found: {path}. Ask the user to check it."
+        if not databricks.looks_like_path(path):
+            return f"Path not found: {path}. Ask the user to check it."
+        target = Path(databricks.normalise(path))      # fetched through the Databricks API
     ctx.status(f"Loading {target.name}")
     try:
         srcs = ctx.registry.load(target, kind)
