@@ -119,25 +119,88 @@ def test_start_cell_uses_proxy_safe_streamlit_flags():
     assert "start_new_session=True" in start and "/_stcore/health" in start
 
 
-def test_backup_cell_copies_a_consistent_db(tmp_path):
-    data, backup = tmp_path / "data", tmp_path / "vol" / "ask"
-    data.mkdir()
-    with sqlite3.connect(data / "chats.db") as con:
+@pytest.fixture
+def fake_tmp(tmp_path, monkeypatch):
+    """Point tempfile.gettempdir() (where the launcher keeps its state file) at a test folder."""
+    import tempfile
+    d = tmp_path / "systmp"
+    d.mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(d))
+    return d
+
+
+def _make_db(folder):
+    folder.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(folder / "chats.db") as con:
         con.execute("CREATE TABLE chats (id TEXT)")
         con.execute("INSERT INTO chats VALUES ('abc')")
-    (data / "preferences.json").write_text('{"tool_name": "Ask"}')
-    cell = _cell_containing("def backup_chats").replace("/tmp/chats_backup.db",
-                                                        str(tmp_path / "snap.db").replace("\\", "/"))
-    exec(cell, {"dbutils": _FakeDbutils({"data_dir": str(data), "backup_dir": str(backup)})})
+    (folder / "preferences.json").write_text('{"tool_name": "Ask"}')
+
+
+def test_backup_cell_copies_a_consistent_db(tmp_path, fake_tmp):
+    data, backup = tmp_path / "data", tmp_path / "vol" / "ask"
+    _make_db(data)
+    cell = _cell_containing("def backup_chats")
+    exec(cell, {"dbutils": _FakeDbutils({"port": "8599", "data_dir": str(data), "backup_dir": str(backup)})})
     with sqlite3.connect(backup / "chats.db") as con:
         assert con.execute("SELECT id FROM chats").fetchall() == [("abc",)]
     assert (backup / "preferences.json").read_text() == '{"tool_name": "Ask"}'
 
 
-def test_backup_without_folder_is_a_noop(tmp_path, capsys):
+def test_backup_uses_folder_recorded_by_start_cell(tmp_path, fake_tmp):
+    """If Start fell back to another folder (e.g. /tmp), later cells must follow it, not the widget."""
+    import json
+    actual, backup = tmp_path / "fallback_data", tmp_path / "vol"
+    _make_db(actual)
+    (fake_tmp / "ask_launcher_8599.json").write_text(json.dumps({
+        "data_dir": str(actual), "log_file": str(actual / "streamlit_8599.log"),
+        "pid_file": str(actual / "streamlit_8599.pid")}))
     cell = _cell_containing("def backup_chats")
-    exec(cell, {"dbutils": _FakeDbutils({"data_dir": str(tmp_path), "backup_dir": ""})})
+    widgets = {"port": "8599", "data_dir": "/local_disk0/ask_data", "backup_dir": str(backup)}
+    exec(cell, {"dbutils": _FakeDbutils(widgets)})
+    assert (backup / "chats.db").exists()
+
+
+def test_backup_without_folder_is_a_noop(tmp_path, fake_tmp, capsys):
+    cell = _cell_containing("def backup_chats")
+    exec(cell, {"dbutils": _FakeDbutils({"port": "8599", "data_dir": str(tmp_path), "backup_dir": ""})})
     assert "No backup folder set" in capsys.readouterr().out
+
+
+def test_log_cell_before_start(tmp_path, fake_tmp, capsys):
+    cell = _cell_containing("_log = launcher_state()")
+    exec(cell, {"dbutils": _FakeDbutils({"port": "8599", "data_dir": str(tmp_path / "none")})})
+    assert "No log yet" in capsys.readouterr().out
+
+
+class TestWritableFolder:
+    @staticmethod
+    def _fn():
+        import ast
+        start = _cell_containing("def _first_writable")
+        node = next(n for n in ast.parse(start).body
+                    if isinstance(n, ast.FunctionDef) and n.name == "_first_writable")
+        ns = {"os": __import__("os")}
+        exec(compile(ast.Module([node], []), "<cell>", "exec"), ns)
+        return ns["_first_writable"]
+
+    def test_skips_unwritable_folders(self, tmp_path):
+        blocker = tmp_path / "a_file"
+        blocker.write_text("x")                     # a folder can't be created under a file
+        good = tmp_path / "ok" / "ask_data"
+        assert self._fn()(["", str(blocker / "ask_data"), str(good)]) == str(good)
+        assert good.is_dir() and not (good / ".write_test").exists()
+
+    def test_all_unwritable_explains(self, tmp_path):
+        blocker = tmp_path / "f"
+        blocker.write_text("x")
+        with pytest.raises(PermissionError, match="No writable folder.*Tried"):
+            self._fn()([str(blocker / "a"), str(blocker / "b")])
+
+    def test_local_disk_then_tmp_are_candidates(self):
+        start = _cell_containing("def _first_writable")
+        assert start.index('"/local_disk0/ask_data"') < start.index('"/tmp/ask_data"')
+        assert "STATE_FILE" in start and "json.dump" in start
 
 
 class TestSecretCheck:

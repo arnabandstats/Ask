@@ -18,6 +18,10 @@
 # MAGIC The app keeps running while this cluster is up (you can detach the notebook). It stops when
 # MAGIC the cluster terminates or when you run **Stop the app**.
 # MAGIC
+# MAGIC **Cluster:** works best on a cluster in **Dedicated (single user)** access mode. In
+# MAGIC Shared/Standard mode the driver's `/local_disk0` is read-only for notebook code, so the
+# MAGIC launcher falls back to `/tmp/ask_data` automatically.
+# MAGIC
 # MAGIC **Chat history** lives on the driver's local disk (SQLite needs a normal disk; Volumes and
 # MAGIC workspace files don't support its writes), which is wiped when the cluster terminates. Set
 # MAGIC **Backup folder** to a Volume path to keep it: it is restored on start and saved on
@@ -123,20 +127,50 @@ dbutils.library.restartPython()
 
 # COMMAND ----------
 
+import json
 import os
 import signal
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
+
+
+def _first_writable(candidates):
+    """First folder we can create and write to. /local_disk0 is not writable on clusters in
+    Shared / Standard access mode, where notebook code runs as a restricted user."""
+    tried = []
+    for folder in candidates:
+        if not folder or folder in tried:
+            continue
+        tried.append(folder)
+        try:
+            os.makedirs(folder, exist_ok=True)
+            probe = os.path.join(folder, ".write_test")
+            with open(probe, "w") as fh:
+                fh.write("ok")
+            os.remove(probe)
+            return folder
+        except OSError:
+            continue
+    raise PermissionError("No writable folder for chat history. Tried: " + ", ".join(tried))
+
 
 _nb_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
 APP_DIR = "/Workspace" + os.path.dirname(_nb_path)
 PORT = int(dbutils.widgets.get("port"))
-DATA_DIR = dbutils.widgets.get("data_dir").strip() or "/local_disk0/ask_data"
-os.makedirs(DATA_DIR, exist_ok=True)
+_requested = dbutils.widgets.get("data_dir").strip()
+DATA_DIR = _first_writable([_requested, "/local_disk0/ask_data", "/tmp/ask_data",
+                            os.path.join(tempfile.gettempdir(), "ask_data"),
+                            os.path.expanduser("~/ask_data")])
+if _requested and DATA_DIR != _requested:
+    print(f"Note: {_requested} is not writable on this cluster (typical in Shared/Standard access "
+          f"mode), so chat history goes to {DATA_DIR} instead.")
 PID_FILE = os.path.join(DATA_DIR, f"streamlit_{PORT}.pid")
 LOG_FILE = os.path.join(DATA_DIR, f"streamlit_{PORT}.log")
+# Where the later cells (log / back up / stop) find this run, even after a detach.
+STATE_FILE = os.path.join(tempfile.gettempdir(), f"ask_launcher_{PORT}.json")
 
 # ── environment for the app (secrets go only into the child process, never printed) ──
 env = dict(os.environ)
@@ -169,10 +203,13 @@ def _stop_previous():
         os.killpg(os.getpgid(pid), signal.SIGTERM)
         time.sleep(2)
         print(f"Stopped the previous app (pid {pid}).")
-    except (ProcessLookupError, ValueError, PermissionError):
+    except (OSError, ValueError):
         pass
     finally:
-        os.remove(PID_FILE)
+        try:
+            os.remove(PID_FILE)
+        except OSError:
+            pass
 
 
 _stop_previous()
@@ -196,6 +233,8 @@ log = open(LOG_FILE, "w")
 proc = subprocess.Popen(cmd, cwd=APP_DIR, env=env, stdout=log, stderr=subprocess.STDOUT,
                         start_new_session=True)          # survives notebook detach / Python restarts
 open(PID_FILE, "w").write(str(proc.pid))
+with open(STATE_FILE, "w") as fh:
+    json.dump({"data_dir": DATA_DIR, "pid": proc.pid, "log_file": LOG_FILE, "pid_file": PID_FILE}, fh)
 
 # wait until Streamlit answers its health check
 for _ in range(90):
@@ -235,9 +274,25 @@ displayHTML(f"""
 
 # COMMAND ----------
 
-PORT = int(dbutils.widgets.get("port"))
-_data_dir = dbutils.widgets.get("data_dir").strip() or "/local_disk0/ask_data"
-print(open(f"{_data_dir}/streamlit_{PORT}.log").read()[-6000:])
+import json
+import os
+import tempfile
+
+
+def launcher_state():
+    """What the Start cell recorded for this port: data_dir, pid, log_file, pid_file."""
+    port = int(dbutils.widgets.get("port"))
+    try:
+        with open(os.path.join(tempfile.gettempdir(), f"ask_launcher_{port}.json")) as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        data_dir = dbutils.widgets.get("data_dir").strip() or "/local_disk0/ask_data"
+        return {"data_dir": data_dir, "log_file": os.path.join(data_dir, f"streamlit_{port}.log"),
+                "pid_file": os.path.join(data_dir, f"streamlit_{port}.pid")}
+
+
+_log = launcher_state()["log_file"]
+print(open(_log).read()[-6000:] if os.path.exists(_log) else "No log yet: run 'Start the app' first.")
 
 # COMMAND ----------
 
@@ -245,13 +300,27 @@ print(open(f"{_data_dir}/streamlit_{PORT}.log").read()[-6000:])
 
 # COMMAND ----------
 
+import json
 import os
 import shutil
 import sqlite3
+import tempfile
+
+
+def launcher_state():
+    """What the Start cell recorded for this port: data_dir, pid, log_file, pid_file."""
+    port = int(dbutils.widgets.get("port"))
+    try:
+        with open(os.path.join(tempfile.gettempdir(), f"ask_launcher_{port}.json")) as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        data_dir = dbutils.widgets.get("data_dir").strip() or "/local_disk0/ask_data"
+        return {"data_dir": data_dir, "log_file": os.path.join(data_dir, f"streamlit_{port}.log"),
+                "pid_file": os.path.join(data_dir, f"streamlit_{port}.pid")}
 
 
 def backup_chats():
-    data_dir = dbutils.widgets.get("data_dir").strip() or "/local_disk0/ask_data"
+    data_dir = launcher_state()["data_dir"]
     backup_dir = dbutils.widgets.get("backup_dir").strip()
     if not backup_dir:
         print("No backup folder set; chats stay on the driver disk only.")
@@ -260,7 +329,7 @@ def backup_chats():
     db = os.path.join(data_dir, "chats.db")
     if os.path.exists(db):
         # sqlite's backup API gives a consistent copy even while the app is writing
-        snapshot = "/tmp/chats_backup.db"
+        snapshot = os.path.join(tempfile.gettempdir(), "chats_backup.db")
         with sqlite3.connect(db) as src, sqlite3.connect(snapshot) as dst:
             src.backup(dst)
         shutil.copyfile(snapshot, os.path.join(backup_dir, "chats.db"))
@@ -286,9 +355,8 @@ if "backup_chats" in globals():
 else:
     print("Not backed up: run the 'Back up chats' cell first if you set a backup folder.")
 PORT = int(dbutils.widgets.get("port"))
-_data_dir = dbutils.widgets.get("data_dir").strip() or "/local_disk0/ask_data"
-_pid_file = f"{_data_dir}/streamlit_{PORT}.pid"
-if os.path.exists(_pid_file):
+_pid_file = launcher_state()["pid_file"] if "launcher_state" in globals() else ""
+if _pid_file and os.path.exists(_pid_file):
     _pid = int(open(_pid_file).read().strip())
     try:
         os.killpg(os.getpgid(_pid), signal.SIGTERM)
@@ -297,4 +365,5 @@ if os.path.exists(_pid_file):
         print("The app was not running.")
     os.remove(_pid_file)
 else:
-    print(f"No app started from this notebook on port {PORT}.")
+    print(f"No app started from this notebook on port {PORT} "
+          "(if you just reattached, run the 'Back up chats' cell first, then this one).")
