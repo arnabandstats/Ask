@@ -110,37 +110,8 @@ def overview(df: pd.DataFrame, name: str) -> str:
     return "\n".join(lines)
 
 
-def make_chart(df: pd.DataFrame, kind: str, x: str | None, y: str | None = None,
-               color: str | None = None, title: str | None = None, agg: str | None = None):
-    import plotly.express as px
-
-    for col in (x, y, color):
-        if col and col not in df.columns:
-            raise KeyError(f"Column '{col}' not found. Columns: {', '.join(map(str, df.columns[:40]))}")
-    data = df
-    if agg and x and y:
-        data = getattr(df.groupby(x, dropna=False)[y], agg)().reset_index()
-    kind = kind.lower()
-    if kind == "histogram":
-        fig = px.histogram(data, x=x, color=color)
-    elif kind == "bar":
-        if y is None and x:
-            data = df[x].value_counts().head(30).rename_axis(x).reset_index(name="count")
-            y = "count"
-        fig = px.bar(data, x=x, y=y, color=color)
-    elif kind == "line":
-        fig = px.line(data.sort_values(x) if x else data, x=x, y=y, color=color)
-    elif kind == "scatter":
-        if len(data) > 20_000:
-            data = data.sample(20_000, random_state=0)
-        fig = px.scatter(data, x=x, y=y, color=color)
-    elif kind == "box":
-        fig = px.box(data, x=x if y else None, y=y or x, color=color)
-    else:
-        raise ValueError("kind must be one of histogram, bar, line, scatter, box")
-    fig.update_layout(title=title or "", margin=dict(t=48 if title else 16, l=8, r=8, b=8),
-                      template="plotly_white",
-                      colorway=["#3d5a8a", "#d9502b", "#7a8b6f", "#c49a3a", "#6b5b95", "#4f8fa3"])
-    if not color:
-        fig.update_traces(marker_color="#3d5a8a")
-    return fig
+def make_chart(df: pd.DataFrame, kind: str, x: str | None = None, y: str | None = None,
+               color: str | None = None, title: str | None = None, agg: str | None = None, **kw):
+    """Figure only (see ask.analysis.charts.build for the notes)."""
+    from ask.analysis.charts import build
+    return build(df, kind, x, y, color, title, agg, **kw)[0]

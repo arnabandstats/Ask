@@ -127,12 +127,13 @@ class TestCharts:
         assert got == pytest.approx(expected.to_dict())
 
     def test_unknown_column(self, df):
-        with pytest.raises(KeyError, match="Column 'nope' not found"):
+        from ask.analysis.charts import ChartError
+        with pytest.raises(ChartError, match="Column 'nope' not found"):
             dq.make_chart(df, "histogram", "nope")
 
     def test_unknown_kind(self, df):
-        with pytest.raises(ValueError, match="kind must be one of"):
-            dq.make_chart(df, "pie", "segment")
+        with pytest.raises(ValueError, match="Unknown chart kind 'radar'"):
+            dq.make_chart(df, "radar", "segment")
 
     def test_large_scatter_sampled(self):
         big = pd.DataFrame({"a": np.arange(30_000), "b": np.arange(30_000)})

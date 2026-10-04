@@ -138,8 +138,21 @@ Extracted PDF/Word text is cached on disk, so large documents reopen instantly.
 - **Code and documents**: answers cite exact lines, shown compactly as
   `train.py · L40–58`. A **Sources** panel under the answer lists each citation with the
   quoted lines and whether it was verified.
-- **Data**: numbers are computed with pandas, never estimated. Ask for a chart and you
-  get an interactive one; ask for a table and it is shown under the answer.
+- **Data**: numbers are computed with pandas, never estimated. Ask for a table and it is
+  shown under the answer. Ask for a chart in plain words and you get an interactive one:
+
+  | Ask for | You get |
+  |---|---|
+  | "histograms of all numerical variables" | a grid with one histogram per numeric column (also box / violin plots) |
+  | "distribution of revenue", "box plot of profit by store" | a single histogram / box / violin |
+  | "how many rows per store" | category counts |
+  | "revenue by store", "profit over time" | bar / line / area (repeated values aggregated) |
+  | "monthly revenue trend" | a chart of a computed result (e.g. a monthly sum) |
+  | "Y vs Y_pred with a trend line" | scatter (large tables sampled) with an OLS line |
+  | "share of train vs test" | pie |
+  | "correlation heatmap" | correlations of the numeric columns (or a count table of two categories) |
+
+  Column names don't need exact case; typos get a "did you mean…".
 - **General knowledge** (e.g. "what is PSI?") is answered too, labelled
   *General knowledge* so it is never confused with facts about your material.
 - **Follow-ups** remember earlier results in the chat (e.g. "explain the AUC you got").

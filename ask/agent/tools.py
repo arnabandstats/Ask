@@ -165,12 +165,34 @@ def t_query_data(ctx: ToolContext, expression: str, source: str | None = None,
 
 def t_make_chart(ctx: ToolContext, kind: str, x: str | None = None, y: str | None = None,
                  color: str | None = None, title: str | None = None, agg: str | None = None,
+                 columns: list[str] | None = None, expression: str | None = None,
+                 nbins: int | None = None, log_y: bool = False, trendline: bool = False,
                  source: str | None = None, sheet: str | None = None) -> str:
+    from ask.analysis import charts
+
     src = _data(ctx, source, sheet)
     ctx.status("Drawing chart")
-    fig = dq.make_chart(src.df, kind, x, y, color, title, agg)
-    ctx.artifacts.append(_fig_artifact(ctx, fig, title or f"{kind}: {x or ''} {y or ''}".strip()))
-    return f"Chart created ({kind}, x={x}, y={y}, color={color}) and shown to the user."
+    data = src.df
+    try:
+        if expression:                     # chart a computed result, e.g. a monthly sum
+            dfs = {s.name: s.df for s in ctx.registry.of_kind("data")}
+            try:
+                data = charts.frame_from_result(dq.evaluate(expression, src.df, dfs))
+            except dq.UnsafeExpression as exc:
+                raise charts.ChartError(f"expression rejected: {exc}") from exc
+            if x is None and y is None and len(data.columns) == 2 and kind not in charts.MULTI_KINDS:
+                x, y = map(str, data.columns)
+        fig, notes = charts.build(data, kind, x, y, color, title, agg, columns, nbins, log_y, trendline)
+    except charts.ChartError as exc:
+        return (f"Chart not created: {exc} Fix the arguments and call make_chart again "
+                "(don't tell the user it failed unless it keeps failing).")
+    except Exception as exc:
+        return (f"Chart not created: {type(exc).__name__}: {exc}. Try another kind or explicit "
+                f"x/y/columns. Columns: {', '.join(map(str, data.columns[:60]))}")
+    fig_title = fig.layout.title.text or kind
+    ctx.artifacts.append(_fig_artifact(ctx, fig, fig_title))
+    extra = f" Notes: {'; '.join(notes)}." if notes else ""
+    return f"Chart '{fig_title}' created and shown to the user.{extra}"
 
 
 def t_run_data_quality(ctx: ToolContext, source: str | None = None, sheet: str | None = None) -> str:
@@ -269,12 +291,24 @@ SCHEMAS = [
         {"expression": _S, "source": _SRC, "sheet": _SHEET,
          "show": {"type": "boolean", "description": "Also show the result table to the user."},
          "title": _S}, ["expression"]),
-    _fn("make_chart", "Draw a chart of the active table and show it to the user.",
-        {"kind": {"type": "string", "enum": ["histogram", "bar", "line", "scatter", "box"]},
-         "x": _S, "y": _S, "color": _S, "title": _S,
+    _fn("make_chart", "Draw a chart and show it to the user. "
+        "histogram/box/violin: one column (x), several (columns=[...]), or omit both for ALL "
+        "numeric columns as a grid of small charts. count: frequencies of a category (x). "
+        "bar/line/area: y by x (repeated x values are aggregated). scatter: y vs x (trendline "
+        "optional). pie: shares of a category. heatmap: correlation of numeric columns, or a "
+        "count crosstab when x and y are categories. expression: chart the result of a pandas "
+        "expression instead of the table, e.g. "
+        "df.groupby(df['TimeStamp'].dt.to_period('M'))['revenue'].sum().",
+        {"kind": {"type": "string", "enum": ["histogram", "box", "violin", "count", "bar", "line",
+                                             "area", "scatter", "pie", "heatmap"]},
+         "x": _S, "y": _S, "color": {"type": "string", "description": "Column to colour/group by."},
+         "columns": {"type": "array", "items": _S, "description": "Several columns (histogram/box/violin/heatmap)."},
+         "expression": {"type": "string", "description": "Pandas expression whose result is charted."},
          "agg": {"type": "string", "enum": ["mean", "sum", "count", "median", "min", "max"],
                  "description": "Aggregate y by x first."},
-         "source": _SRC, "sheet": _SHEET}, ["kind"]),
+         "nbins": {"type": "integer"}, "log_y": {"type": "boolean"},
+         "trendline": {"type": "boolean", "description": "Scatter only: add a linear trend line."},
+         "title": _S, "source": _SRC, "sheet": _SHEET}, ["kind"]),
     _fn("run_data_quality", "Run the built-in deterministic data-quality checks (missing values, "
         "validity, IQR outliers, descriptive stats, plots).", {"source": _SRC, "sheet": _SHEET}),
     _fn("list_tests", "List the built-in deterministic model-validation tests by model type.", {}),
