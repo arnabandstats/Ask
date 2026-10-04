@@ -1,0 +1,35 @@
+# Ask — Python 3.10+
+# Install:  pip install -r requirements.txt
+# Run:      streamlit run app.py
+
+# ── App + LLM ────────────────────────────────────────────────
+streamlit>=1.40
+openai>=1.0
+python-dotenv
+tenacity
+
+# ── Data ─────────────────────────────────────────────────────
+numpy
+pandas
+openpyxl             # .xlsx read
+xlrd                 # legacy .xls read
+pyarrow              # .parquet / .feather
+
+# ── Documents ────────────────────────────────────────────────
+pypdf
+python-docx
+
+# ── Charts ───────────────────────────────────────────────────
+plotly
+matplotlib
+
+# ── Built-in deterministic tests (imported only when a test runs) ──
+scikit-learn
+statsmodels
+imbalanced-learn
+shap
+opencv-python
+xlsxwriter
+
+# ── Tests ────────────────────────────────────────────────────
+pytest
