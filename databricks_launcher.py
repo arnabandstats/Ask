@@ -2,27 +2,25 @@
 # MAGIC %md
 # MAGIC # Launch the chat app on Databricks
 # MAGIC
-# MAGIC Runs the Streamlit app on this cluster's **driver** and gives you a link to open it
-# MAGIC (through the Databricks driver proxy — only people with access to this cluster can open it).
+# MAGIC **Run all** — the notebook picks the right way for the compute it is attached to:
 # MAGIC
-# MAGIC **How to use**
-# MAGIC 1. Put this repo in your workspace (Git folder / Repos, or import the folder) — keep this
-# MAGIC    notebook in the repo root, next to `app.py`.
+# MAGIC | Attached to | What happens |
+# MAGIC |---|---|
+# MAGIC | **Serverless**, or a cluster in **Shared/Standard** access mode | Deploys the app as a **Databricks App** (created/updated for you, your API-key secret attached) and prints its URL. |
+# MAGIC | A cluster in **Dedicated (single user)** access mode | Runs the app on the cluster's driver and prints a link (driver proxy). |
+# MAGIC
+# MAGIC Change **Run mode** to force one or the other.
+# MAGIC
+# MAGIC **Before the first run**
+# MAGIC 1. This notebook must sit in the repo root, next to `app.py` (a Git folder of the repo).
 # MAGIC 2. The API key is read from the Databricks secret **`ask` / `openai-api-key`** (the widget
-# MAGIC    defaults). It was stored once from a terminal with:
+# MAGIC    defaults), stored once from a terminal with
 # MAGIC    `databricks secrets create-scope ask` then `databricks secrets put-secret ask openai-api-key`.
-# MAGIC    If you used other names, change the two secret widgets.
-# MAGIC 3. **Run all**. Cell 2 checks the secret before anything is installed; the last cells print
-# MAGIC    the link, show the log, back up chats and stop the app.
+# MAGIC 3. Databricks Apps must be enabled in the workspace (ask an admin if creating an app fails).
 # MAGIC
-# MAGIC The app keeps running while this cluster is up (you can detach the notebook). It stops when
-# MAGIC the cluster terminates or when you run **Stop the app**.
+# MAGIC Step 2 checks the secret and the compute before anything is installed.
 # MAGIC
-# MAGIC **Cluster:** needs a cluster in **Dedicated (single user)** access mode. On clusters in
-# MAGIC Shared/Standard mode Databricks blocks the app link ("Traffic on this port is not
-# MAGIC permitted"); use **Databricks Apps** instead (README → Running on Databricks), which
-# MAGIC works everywhere. Step 2 warns you if the cluster is in Shared/Standard mode.
-# MAGIC
+# MAGIC *Cluster mode only:* the app runs while the cluster is up; **Stop the app** stops it.
 # MAGIC **Chat history** lives on the driver's local disk (SQLite needs a normal disk; Volumes and
 # MAGIC workspace files don't support its writes), which is wiped when the cluster terminates. Set
 # MAGIC **Backup folder** to a Volume path to keep it: it is restored on start and saved on
@@ -38,6 +36,8 @@
 
 # COMMAND ----------
 
+dbutils.widgets.dropdown("run_mode", "auto", ["auto", "databricks_app", "cluster"], "Run mode")
+dbutils.widgets.text("app_name", "", "App name (blank = ask-<your user>)")
 dbutils.widgets.text("port", "8501", "Port")
 dbutils.widgets.text("secret_scope", "ask", "Secret scope (API key)")
 dbutils.widgets.text("secret_key", "openai-api-key", "Secret key name")
@@ -104,32 +104,38 @@ def compute_kind():
     return "shared" if mode.upper() in SHARED_MODES else "dedicated"
 
 
-def cluster_allows_driver_proxy():
-    """The app link goes through the driver proxy, which does not exist on serverless compute
-    and is blocked on clusters in Shared/Standard access mode ('Traffic on this port is not
-    permitted'). Serverless stops here, before the long install; Shared only warns."""
+MODE_FILE = "/tmp/ask_launcher_mode.txt"      # survives the Python restart after %pip
+
+
+def decide_run_mode():
+    """'app' (deploy a Databricks App) or 'cluster' (run on this cluster's driver).
+    The driver link needs the driver proxy, which serverless does not have and Shared/Standard
+    clusters block ('Traffic on this port is not permitted') — so those use Databricks Apps."""
+    choice = dbutils.widgets.get("run_mode")
     kind = compute_kind()
-    if kind == "serverless":
+    if choice == "cluster" and kind != "dedicated":
         raise RuntimeError(
-            "This notebook is attached to SERVERLESS compute, which cannot serve the app (no "
-            "driver proxy, no writable driver disk). Either attach a classic cluster in Dedicated "
-            "(single user) access mode, or deploy as a Databricks App (README -> 'Databricks Apps').")
-    if kind == "shared":
-        print("WARNING: this cluster is in Shared/Standard access mode. Databricks blocks the app "
-              "link on such clusters. Switch the cluster to Dedicated (single user) access mode, "
-              "or deploy as a Databricks App (README -> 'Databricks Apps').")
-        return False
-    return True
+            f"Run mode 'cluster' needs a cluster in Dedicated (single user) access mode, but this "
+            f"notebook is on {kind} compute, where Databricks blocks the app link. Set Run mode to "
+            "'auto' or 'databricks_app'.")
+    mode = "cluster" if choice == "cluster" or (choice == "auto" and kind == "dedicated") else "app"
+    where = {"serverless": "serverless compute", "shared": "a Shared/Standard cluster",
+             "dedicated": "a Dedicated cluster"}[kind]
+    print(f"Attached to {where}: " + ("running the app on this cluster's driver."
+                                       if mode == "cluster" else "deploying it as a Databricks App."))
+    with open(MODE_FILE, "w") as fh:
+        fh.write(mode)
+    return mode
 
 
 check_api_key_secret()
-cluster_allows_driver_proxy()
+RUN_MODE = decide_run_mode()
 
 # COMMAND ----------
 
 # MAGIC %md ## 3 · Install dependencies
-# MAGIC Uses the repo's `requirements.txt`, swapping `opencv-python` for `opencv-python-headless`
-# MAGIC (clusters have no display libraries, and the GUI build fails to import there).
+# MAGIC App mode needs only the Databricks SDK (Databricks Apps installs the app's own
+# MAGIC requirements). Cluster mode installs the repo's `requirements.txt` here.
 
 # COMMAND ----------
 
@@ -140,14 +146,16 @@ APP_DIR = "/Workspace" + os.path.dirname(_nb_path)
 assert os.path.exists(os.path.join(APP_DIR, "app.py")), (
     f"app.py not found in {APP_DIR}. Keep this notebook in the repo root, next to app.py.")
 
-_reqs = []
-for line in open(os.path.join(APP_DIR, "requirements.txt"), encoding="utf-8"):
-    req = line.split("#", 1)[0].strip()
-    if not req:
-        continue
-    if req.lower().startswith("opencv-python"):
-        req = "opencv-python-headless"
-    _reqs.append(req)
+_mode = open("/tmp/ask_launcher_mode.txt").read().strip()
+_reqs = ["databricks-sdk>=0.50"]                 # app deployment API
+if _mode == "cluster":
+    for line in open(os.path.join(APP_DIR, "requirements.txt"), encoding="utf-8"):
+        req = line.split("#", 1)[0].strip()
+        if not req:
+            continue
+        if req.lower().startswith("opencv-python"):
+            req = "opencv-python-headless"
+        _reqs.append(req)
 with open("/tmp/ask_requirements.txt", "w", encoding="utf-8") as fh:
     fh.write("\n".join(_reqs) + "\n")
 print(f"App folder: {APP_DIR}")
@@ -163,7 +171,101 @@ dbutils.library.restartPython()
 
 # COMMAND ----------
 
-# MAGIC %md ## 4 · Start the app
+# MAGIC %md ## 4 · Deploy as a Databricks App (serverless / Shared clusters)
+# MAGIC Creates the app the first time (or updates it), attaches your API-key secret as the
+# MAGIC app resource `openai-api-key` (read by `app.yaml`), deploys this folder, and prints the
+# MAGIC URL. The first deployment installs the requirements and takes a few minutes. In cluster
+# MAGIC mode this step is skipped.
+
+# COMMAND ----------
+
+import os
+import re
+from datetime import timedelta
+
+
+def deploy_databricks_app(w, app_name, source_path, scope, key, log=print):
+    """Create or update the app, make sure its compute runs, deploy `source_path`.
+    Returns the app URL. `w` is a databricks.sdk.WorkspaceClient."""
+    from databricks.sdk.service import apps as A
+
+    secret = A.AppResource(name="openai-api-key", description="OpenAI API key",
+                           secret=A.AppResourceSecret(scope=scope, key=key,
+                                                      permission=A.AppResourceSecretSecretPermission.READ))
+    spec = A.App(name=app_name, description="Ask: chat with repositories, documents and data",
+                 resources=[secret])
+    from databricks.sdk.errors import NotFound
+
+    try:
+        w.apps.get(app_name)
+        exists = True
+    except NotFound:                             # anything else (e.g. no permission) is raised as-is
+        exists = False
+
+    if exists:
+        log(f"Updating app '{app_name}' (secret resource '{scope}/{key}')…")
+        w.apps.update(name=app_name, app=spec)
+    else:
+        log(f"Creating app '{app_name}' with secret resource '{scope}/{key}' (takes a minute or two)…")
+        w.apps.create_and_wait(app=spec, timeout=timedelta(minutes=20))
+
+    app = w.apps.get(app_name)
+    state = getattr(getattr(app, "compute_status", None), "state", None)
+    if state is not None and str(getattr(state, "value", state)) not in ("ACTIVE", "STARTING", "UPDATING"):
+        log("Starting the app's compute…")
+        w.apps.start_and_wait(app_name, timeout=timedelta(minutes=20))
+
+    log("Deploying (the first time installs requirements; a few minutes)…")
+
+    def _fail(detail):
+        url = w.apps.get(app_name).url or ""
+        return RuntimeError(f"Deployment of '{app_name}' failed: {detail}. Open Compute → Apps → "
+                            f"{app_name} → Logs{(' (' + url + '/logz)') if url else ''} for the details.")
+
+    try:
+        dep = w.apps.deploy_and_wait(
+            app_name=app_name,
+            app_deployment=A.AppDeployment(source_code_path=source_path, mode=A.AppDeploymentMode.SNAPSHOT),
+            timeout=timedelta(minutes=30))
+    except Exception as exc:                     # the SDK raises OperationFailed on a failed deploy
+        raise _fail(exc) from exc
+    status = getattr(dep, "status", None)
+    result = str(getattr(getattr(status, "state", None), "value", getattr(status, "state", "")))
+    if result != "SUCCEEDED":
+        raise _fail(f"{result or 'unknown state'}: {getattr(status, 'message', '') or 'no message'}")
+    return w.apps.get(app_name).url
+
+
+def default_app_name(user_name):
+    """'ask-<user>' in the form Apps accepts: lowercase letters, digits, dashes, max 30 chars."""
+    user = re.sub(r"[^a-z0-9]+", "-", user_name.split("@")[0].lower()).strip("-")
+    return ("ask-" + user)[:30].rstrip("-") or "ask"
+
+
+if open("/tmp/ask_launcher_mode.txt").read().strip() == "app":
+    from databricks.sdk import WorkspaceClient
+
+    _w = WorkspaceClient()
+    _nb_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
+    _source = "/Workspace" + os.path.dirname(_nb_path)
+    _name = dbutils.widgets.get("app_name").strip() or default_app_name(_w.current_user.me().user_name)
+    APP_URL = deploy_databricks_app(_w, _name, _source, dbutils.widgets.get("secret_scope").strip(),
+                                    dbutils.widgets.get("secret_key").strip())
+    displayHTML(f"""
+<div style="font-family: system-ui, sans-serif; font-size: 15px; padding: 8px 0">
+  <a href="{APP_URL}" target="_blank" rel="noopener"
+     style="background:#16191f;color:#fff;padding:10px 18px;border-radius:10px;text-decoration:none">
+     Open the app ↗</a>
+  <div style="margin-top:12px;color:#6b7079">{APP_URL} · Databricks App “{_name}”.
+  Share it from Compute → Apps → {_name} → Permissions (Can use).</div>
+</div>""")
+    dbutils.notebook.exit(APP_URL)               # done: the cluster-mode cells below are skipped
+else:
+    print("Cluster mode: skipping the Databricks App deployment.")
+
+# COMMAND ----------
+
+# MAGIC %md ## 5 · Start the app (cluster mode)
 
 # COMMAND ----------
 
@@ -291,7 +393,7 @@ print(f"App running (pid {proc.pid}) on port {PORT}. Chats are saved in {DATA_DI
 
 # COMMAND ----------
 
-# MAGIC %md ## 5 · Open it
+# MAGIC %md ## 6 · Open it (cluster mode)
 
 # COMMAND ----------
 
@@ -327,7 +429,7 @@ displayHTML(_warning + f"""
 
 # COMMAND ----------
 
-# MAGIC %md ## 6 · Log (run any time)
+# MAGIC %md ## 7 · Log (cluster mode, run any time)
 
 # COMMAND ----------
 
@@ -353,7 +455,7 @@ print(open(_log).read()[-6000:] if os.path.exists(_log) else "No log yet: run 'S
 
 # COMMAND ----------
 
-# MAGIC %md ## 7 · Back up chats (run any time; also done by Stop)
+# MAGIC %md ## 8 · Back up chats (run any time; also done by Stop)
 
 # COMMAND ----------
 
@@ -400,7 +502,7 @@ backup_chats()
 
 # COMMAND ----------
 
-# MAGIC %md ## 8 · Stop the app
+# MAGIC %md ## 9 · Stop the app (cluster mode)
 
 # COMMAND ----------
 

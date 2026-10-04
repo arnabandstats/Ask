@@ -54,34 +54,28 @@ answer.
 
 ## Running on Databricks
 
-There are two ways. **Databricks Apps** is the recommended one; the notebook works only on
-clusters in **Dedicated (single user)** access mode.
+1. Store the API key once, from a terminal:
+   `databricks secrets create-scope ask`, then `databricks secrets put-secret ask openai-api-key`.
+2. Clone this repo as a Git folder, open `databricks_launcher.py` (repo root, next to
+   `app.py`) and **Run all**. It checks the secret, then picks the way that works on the
+   compute it is attached to:
 
-### Databricks Apps (recommended)
+| Attached to | What the notebook does |
+|---|---|
+| **Serverless**, or a cluster in **Shared/Standard** access mode | Creates/updates a **Databricks App** (`ask-<your user>`), attaches the secret as the app resource `openai-api-key`, deploys this folder with `app.yaml`, and prints the app URL. Needs Databricks Apps enabled in the workspace. |
+| A cluster in **Dedicated (single user)** access mode | Installs the requirements and runs the app on the driver, with a link through the driver proxy. |
 
-A stable URL behind your Databricks sign-in, no cluster to keep running, works in any
-workspace where Apps is enabled. Uses `app.yaml` in this repo.
+Set the **Run mode** widget to force `databricks_app` or `cluster`. Redeploying after a
+**Pull** is just **Run all** again.
 
-1. Store the API key once (from a terminal): `databricks secrets create-scope ask`, then
-   `databricks secrets put-secret ask openai-api-key`.
-2. **Compute → Apps → Create app → Create a custom app**, name it (e.g. `ask`).
-3. In the app's **App resources**, add a **Secret**: scope `ask`, key `openai-api-key`,
-   permission **Can read**, resource key **`openai-api-key`** (this name is what
-   `app.yaml` refers to).
-4. Deploy from this repo: point the app at the Git folder (or workspace folder) that holds
-   this repo, e.g. `databricks apps deploy ask --source-code-path /Workspace/Users/<you>/Ask`.
-5. Open the app's URL. Grant colleagues **Can use** on the app to share it.
+**Databricks App notes:** share it from Compute → Apps → your app → Permissions (**Can
+use**). Chats are kept in `/tmp/ask_data` inside the app and reset on redeploy. To set it up
+by hand instead: create a custom app, add a Secret resource (scope `ask`, key
+`openai-api-key`, **Can read**, resource key `openai-api-key`) and deploy this folder.
 
-Chats are kept in `/tmp/ask_data` inside the app and are reset when the app is redeployed.
-
-### Launcher notebook (Dedicated clusters only)
-
-Open `databricks_launcher.py` (keep it in the repo root next to `app.py`), and **Run all**.
-It checks the secret (`ask` / `openai-api-key` by default), installs the requirements,
-starts the app on the driver, and prints an **Open the app** link through the driver
-proxy. On a cluster in Shared/Standard access mode Databricks blocks that link
-("Traffic on this port is not permitted"); the notebook warns about this up front.
-Chats live on the driver disk; set the backup folder to a Volume path to keep them
+**Cluster mode notes:** the driver link does not work on serverless or Shared/Standard
+clusters ("Traffic on this port is not permitted"), which is why the notebook uses an App
+there. Chats live on the driver disk; set the backup folder to a Volume path to keep them
 across cluster restarts. Later cells show the log, back up chats and stop the app.
 
 ## Tests

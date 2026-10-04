@@ -32,4 +32,5 @@ opencv-python-headless   # no GUI needed; also imports on servers without displa
 xlsxwriter
 
 # ── Tests ────────────────────────────────────────────────────
+databricks-sdk           # launcher tests (Databricks Apps deployment)
 pytest

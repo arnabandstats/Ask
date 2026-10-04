@@ -107,16 +107,26 @@ def test_pip_cell_installs_the_generated_requirements():
     assert any("restartPython()" in c for c in _code_cells())
 
 
-def test_requirements_cell_swaps_opencv_for_headless(tmp_path):
-    cell = _cell_containing("_reqs = []")
-    out_file = tmp_path / "reqs.txt"
-    cell = cell.replace('"/Workspace" + ', "").replace("/tmp/ask_requirements.txt", str(out_file).replace("\\", "/"))
-    ns = {"dbutils": _FakeDbutils({}, notebook_path=str(ROOT / "databricks_launcher"))}
-    exec(cell, ns)
-    reqs = out_file.read_text().split()
+def _requirements_for(mode, tmp_path):
+    mode_file, out_file = tmp_path / "mode.txt", tmp_path / "reqs.txt"
+    mode_file.write_text(mode)
+    cell = (_cell_containing('_reqs = ["databricks-sdk')
+            .replace('"/Workspace" + ', "")
+            .replace("/tmp/ask_requirements.txt", str(out_file).replace("\\", "/"))
+            .replace("/tmp/ask_launcher_mode.txt", str(mode_file).replace("\\", "/")))
+    exec(cell, {"dbutils": _FakeDbutils({}, notebook_path=str(ROOT / "databricks_launcher"))})
+    return out_file.read_text().split()
+
+
+def test_cluster_mode_installs_app_requirements_with_headless_opencv(tmp_path):
+    reqs = _requirements_for("cluster", tmp_path)
     assert "opencv-python-headless" in reqs and "opencv-python" not in reqs
-    assert {"streamlit>=1.40", "openai>=1.0", "pandas", "pytest"} <= set(reqs)
+    assert {"streamlit>=1.40", "openai>=1.0", "pandas", "pytest", "databricks-sdk>=0.50"} <= set(reqs)
     assert not any(r.startswith("#") or "  " in r for r in reqs)
+
+
+def test_app_mode_installs_only_the_sdk(tmp_path):
+    assert _requirements_for("app", tmp_path) == ["databricks-sdk>=0.50"]
 
 
 def test_secrets_are_never_printed():
@@ -222,26 +232,46 @@ class TestWritableFolder:
 class TestSecretCheck:
     FAKE_KEY = "sk-test-" + "Z" * 40
 
-    def _run(self, store, scope="ask", key="openai-api-key", mode="SINGLE_USER"):
-        ns = {"dbutils": _FakeDbutils({"secret_scope": scope, "secret_key": key}, secrets=store),
-              "spark": _FakeSpark(mode)}
-        exec(_cell_containing("def check_api_key_secret"), ns)
+    def _run(self, store, scope="ask", key="openai-api-key", mode="SINGLE_USER", run_mode="auto",
+             mode_file=None):
+        widgets = {"secret_scope": scope, "secret_key": key, "run_mode": run_mode}
+        ns = {"dbutils": _FakeDbutils(widgets, secrets=store), "spark": _FakeSpark(mode)}
+        cell = _cell_containing("def check_api_key_secret")
+        if mode_file is None:
+            import tempfile
+            mode_file = Path(tempfile.mkdtemp()) / "mode.txt"
+        cell = cell.replace("/tmp/ask_launcher_mode.txt", str(mode_file).replace("\\", "/"))
+        exec(cell, ns)
         return ns
 
-    @pytest.mark.parametrize("mode", ["USER_ISOLATION", "DATA_SECURITY_MODE_STANDARD"])
-    def test_shared_cluster_warns_about_blocked_link(self, capsys, mode):
-        ns = self._run({"ask": {"openai-api-key": self.FAKE_KEY}}, mode=mode)
+    @pytest.mark.parametrize("cluster_mode,expected", [
+        (None, "app"),                                  # serverless
+        ("USER_ISOLATION", "app"),                      # Shared
+        ("DATA_SECURITY_MODE_STANDARD", "app"),         # Standard
+        ("SINGLE_USER", "cluster"),                     # Dedicated
+        ("DATA_SECURITY_MODE_DEDICATED", "cluster"),
+    ])
+    def test_auto_mode_picks_what_works(self, tmp_path, capsys, cluster_mode, expected):
+        mode_file = tmp_path / "mode.txt"
+        ns = self._run({"ask": {"openai-api-key": self.FAKE_KEY}}, mode=cluster_mode, mode_file=mode_file)
+        assert ns["RUN_MODE"] == expected and mode_file.read_text() == expected
         out = capsys.readouterr().out
-        assert "Shared/Standard access mode" in out and "Databricks App" in out
-        assert ns["cluster_allows_driver_proxy"]() is False
+        assert "API key found" in out                    # secret checked first
+        assert ("Databricks App" in out) == (expected == "app")
 
-    def test_serverless_stops_before_install_with_clear_message(self, capsys):
-        with pytest.raises(RuntimeError, match="SERVERLESS compute.*Databricks App"):
-            self._run({"ask": {"openai-api-key": self.FAKE_KEY}}, mode=None)
-        assert "API key found" in capsys.readouterr().out          # the secret check still ran first
+    def test_forced_app_mode_on_dedicated(self, tmp_path):
+        ns = self._run({"ask": {"openai-api-key": self.FAKE_KEY}}, mode="SINGLE_USER",
+                       run_mode="databricks_app", mode_file=tmp_path / "m.txt")
+        assert ns["RUN_MODE"] == "app"
+
+    @pytest.mark.parametrize("cluster_mode", [None, "USER_ISOLATION"])
+    def test_forced_cluster_mode_where_link_is_blocked_explains(self, tmp_path, cluster_mode):
+        with pytest.raises(RuntimeError, match="needs a cluster in Dedicated.*'auto' or 'databricks_app'"):
+            self._run({"ask": {"openai-api-key": self.FAKE_KEY}}, mode=cluster_mode, run_mode="cluster",
+                      mode_file=tmp_path / "m.txt")
 
     def test_open_cell_handles_serverless(self):
-        cell = _cell_containing("APP_URL =")
+        cell = _cell_containing("driver-proxy/o/")
         ns = {"spark": _FakeSpark(None), "PORT": 8501, "displayHTML": lambda html: None}
         with pytest.raises(RuntimeError, match="serverless has no driver proxy"):
             exec(cell, ns)
@@ -253,14 +283,8 @@ class TestSecretCheck:
         spark.conf.get = lambda key, *d: {"spark.databricks.workspaceUrl": "dbc-1.cloud.databricks.com",
                                           "spark.databricks.clusterUsageTags.clusterOwnerOrgId": "123"
                                           }.get(key) or real_get(key, *d)
-        exec(_cell_containing("APP_URL ="), {"spark": spark, "PORT": 8501, "displayHTML": shown.append})
+        exec(_cell_containing("driver-proxy/o/"), {"spark": spark, "PORT": 8501, "displayHTML": shown.append})
         assert "driver-proxy/o/123/1004-000000-abcdef/8501/" in shown[0] and "Shared/Standard" not in shown[0]
-
-    @pytest.mark.parametrize("mode", ["SINGLE_USER", "DATA_SECURITY_MODE_DEDICATED", ""])
-    def test_dedicated_cluster_no_warning(self, capsys, mode):
-        ns = self._run({"ask": {"openai-api-key": self.FAKE_KEY}}, mode=mode)
-        assert "WARNING" not in capsys.readouterr().out
-        assert ns["cluster_allows_driver_proxy"]() is True
 
     def test_widget_defaults_point_at_ask_scope(self):
         settings = _cell_containing('dbutils.widgets.text("port"')
@@ -299,6 +323,145 @@ class TestSecretCheck:
         check = next(i for i, c in enumerate(cells) if "def check_api_key_secret" in c)
         install = next(i for i, c in enumerate(cells) if "%pip install" in c)
         assert check < install
+
+
+class TestDeployDatabricksApp:
+    """The app-mode deploy, against a fake of the Databricks SDK's Apps API (real SDK types)."""
+
+    URL = "https://ask-arnab-123.aws.databricksapps.com"
+
+    @pytest.fixture(autouse=True)
+    def _sdk(self):
+        pytest.importorskip("databricks.sdk")
+
+    @staticmethod
+    def _fns():
+        import ast
+        cell = _cell_containing("def deploy_databricks_app")
+        tree = ast.parse(cell)
+        keep = [n for n in tree.body if isinstance(n, (ast.Import, ast.ImportFrom, ast.FunctionDef))]
+        ns = {}
+        exec(compile(ast.Module(keep, []), "<cell>", "exec"), ns)
+        return ns
+
+    def _fake(self, exists=False, state="ACTIVE", result="SUCCEEDED", deploy_error=None, get_error=None):
+        from types import SimpleNamespace
+        from databricks.sdk.errors import NotFound
+        from databricks.sdk.service.apps import AppDeploymentState, ComputeState
+        url = self.URL
+
+        class Apps:
+            def __init__(self):
+                self.calls, self.exists, self.state = [], exists, state
+
+            def get(self, name):
+                if get_error:
+                    raise get_error
+                if not self.exists:
+                    raise NotFound(f"App with name {name} does not exist.")
+                return SimpleNamespace(url=url, compute_status=SimpleNamespace(state=ComputeState(self.state)))
+
+            def create_and_wait(self, app, timeout):
+                self.calls.append(("create", app))
+                self.exists = True
+                return app
+
+            def update(self, name, app):
+                self.calls.append(("update", name, app))
+
+            def start_and_wait(self, name, timeout):
+                self.calls.append(("start", name))
+                self.state = "ACTIVE"
+
+            def deploy_and_wait(self, app_name, app_deployment, timeout):
+                self.calls.append(("deploy", app_name, app_deployment))
+                if deploy_error:
+                    raise deploy_error
+                return SimpleNamespace(status=SimpleNamespace(state=AppDeploymentState(result),
+                                                              message="requirements install failed"))
+
+        return SimpleNamespace(apps=Apps())
+
+    def test_creates_app_with_secret_resource_and_deploys_folder(self):
+        from databricks.sdk.service.apps import AppDeploymentMode, AppResourceSecretSecretPermission
+        w, logs = self._fake(), []
+        url = self._fns()["deploy_databricks_app"](w, "ask-arnab", "/Workspace/Users/a/Ask", "ask",
+                                                   "openai-api-key", log=logs.append)
+        assert url == self.URL
+        kinds = [c[0] for c in w.apps.calls]
+        assert kinds == ["create", "deploy"]
+        app = w.apps.calls[0][1]
+        res = app.resources[0]
+        assert app.name == "ask-arnab" and res.name == "openai-api-key"          # == app.yaml valueFrom
+        assert (res.secret.scope, res.secret.key) == ("ask", "openai-api-key")
+        assert res.secret.permission == AppResourceSecretSecretPermission.READ
+        dep = w.apps.calls[1][2]
+        assert dep.source_code_path == "/Workspace/Users/a/Ask" and dep.mode == AppDeploymentMode.SNAPSHOT
+        assert any("Creating app" in m for m in logs)
+
+    def test_existing_app_is_updated_not_recreated(self):
+        w = self._fake(exists=True)
+        self._fns()["deploy_databricks_app"](w, "ask-arnab", "/src", "ask", "k", log=lambda m: None)
+        assert [c[0] for c in w.apps.calls] == ["update", "deploy"]
+
+    def test_stopped_app_is_started_before_deploy(self):
+        w = self._fake(exists=True, state="STOPPED")
+        self._fns()["deploy_databricks_app"](w, "ask-arnab", "/src", "ask", "k", log=lambda m: None)
+        assert [c[0] for c in w.apps.calls] == ["update", "start", "deploy"]
+
+    def test_failed_deployment_points_to_logs(self):
+        w = self._fake(result="FAILED")
+        with pytest.raises(RuntimeError, match=r"failed: FAILED: requirements install failed.*Logs.*/logz"):
+            self._fns()["deploy_databricks_app"](w, "ask-arnab", "/src", "ask", "k", log=lambda m: None)
+
+    def test_sdk_operation_failure_is_explained(self):
+        w = self._fake(deploy_error=RuntimeError("OperationFailed: app crashed on start"))
+        with pytest.raises(RuntimeError, match="app crashed on start.*Logs"):
+            self._fns()["deploy_databricks_app"](w, "ask-arnab", "/src", "ask", "k", log=lambda m: None)
+
+    def test_permission_error_is_not_mistaken_for_missing_app(self):
+        from databricks.sdk.errors import PermissionDenied
+        w = self._fake(get_error=PermissionDenied("User does not have CAN_MANAGE on app ask-arnab"))
+        with pytest.raises(PermissionDenied):
+            self._fns()["deploy_databricks_app"](w, "ask-arnab", "/src", "ask", "k", log=lambda m: None)
+        assert w.apps.calls == []
+
+    @pytest.mark.parametrize("user,name", [
+        ("arnabandstats@gmail.com", "ask-arnabandstats"),
+        ("First.Last@corp.com", "ask-first-last"),
+        ("a" * 60 + "@x.com", "ask-" + "a" * 26),
+        ("___@x.com", "ask"),
+    ])
+    def test_default_app_name(self, user, name):
+        got = self._fns()["default_app_name"](user)
+        assert got == name and len(got) <= 30
+
+    def test_cell_deploys_shows_link_and_ends_the_notebook(self, tmp_path, monkeypatch):
+        import databricks.sdk as sdk
+        mode_file = tmp_path / "mode.txt"
+        mode_file.write_text("app")
+        fake = self._fake()
+        from types import SimpleNamespace
+        fake.current_user = SimpleNamespace(me=lambda: SimpleNamespace(user_name="arnabandstats@gmail.com"))
+        monkeypatch.setattr(sdk, "WorkspaceClient", lambda: fake)
+        exits, shown = [], []
+        db = _FakeDbutils({"app_name": "", "secret_scope": "ask", "secret_key": "openai-api-key"},
+                          notebook_path="/Users/arnab/Ask/databricks_launcher")
+        db.notebook.exit = exits.append
+        cell = _cell_containing("def deploy_databricks_app").replace(
+            "/tmp/ask_launcher_mode.txt", str(mode_file).replace("\\", "/"))
+        exec(cell, {"dbutils": db, "displayHTML": shown.append})
+        assert exits == [self.URL] and self.URL in shown[0]
+        assert fake.apps.calls[0][1].name == "ask-arnabandstats"
+        assert fake.apps.calls[-1][2].source_code_path == "/Workspace/Users/arnab/Ask"
+
+    def test_cell_skips_in_cluster_mode(self, tmp_path, capsys):
+        mode_file = tmp_path / "mode.txt"
+        mode_file.write_text("cluster")
+        cell = _cell_containing("def deploy_databricks_app").replace(
+            "/tmp/ask_launcher_mode.txt", str(mode_file).replace("\\", "/"))
+        exec(cell, {"dbutils": _FakeDbutils({}), "displayHTML": lambda h: None})
+        assert "skipping the Databricks App deployment" in capsys.readouterr().out
 
 
 class TestDatabricksAppConfig:
