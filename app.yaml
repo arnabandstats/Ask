@@ -1,0 +1,14 @@
+# Databricks Apps configuration (Compute → Apps → Create app → Custom, source = this repo).
+# The platform installs requirements.txt and runs the command below; it sets the port.
+command: ["streamlit", "run", "app.py"]
+
+env:
+  # The API key comes from a Databricks secret attached to the app as a resource whose
+  # "resource key" is openai-api-key (scope "ask", key "openai-api-key"). Never put the key here.
+  - name: OPENAI_API_KEY
+    valueFrom: openai-api-key
+  - name: USE_AZURE_OPENAI
+    value: "false"
+  # The app's source folder is read-only; keep chats and outputs on local scratch disk.
+  - name: ASK_DATA_DIR
+    value: /tmp/ask_data

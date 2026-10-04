@@ -18,9 +18,10 @@
 # MAGIC The app keeps running while this cluster is up (you can detach the notebook). It stops when
 # MAGIC the cluster terminates or when you run **Stop the app**.
 # MAGIC
-# MAGIC **Cluster:** works best on a cluster in **Dedicated (single user)** access mode. In
-# MAGIC Shared/Standard mode the driver's `/local_disk0` is read-only for notebook code, so the
-# MAGIC launcher falls back to `/tmp/ask_data` automatically.
+# MAGIC **Cluster:** needs a cluster in **Dedicated (single user)** access mode. On clusters in
+# MAGIC Shared/Standard mode Databricks blocks the app link ("Traffic on this port is not
+# MAGIC permitted"); use **Databricks Apps** instead (README → Running on Databricks), which
+# MAGIC works everywhere. Step 2 warns you if the cluster is in Shared/Standard mode.
 # MAGIC
 # MAGIC **Chat history** lives on the driver's local disk (SQLite needs a normal disk; Volumes and
 # MAGIC workspace files don't support its writes), which is wiped when the cluster terminates. Set
@@ -83,7 +84,23 @@ def check_api_key_secret():
     return scope, key
 
 
+SHARED_MODES = {"USER_ISOLATION", "DATA_SECURITY_MODE_STANDARD", "STANDARD"}
+
+
+def cluster_allows_driver_proxy():
+    """The driver proxy (how the app link reaches the driver) is blocked on clusters in
+    Shared / Standard access mode: the link answers 'Traffic on this port is not permitted'."""
+    mode = spark.conf.get("spark.databricks.clusterUsageTags.dataSecurityMode", "") or ""
+    if mode.upper() in SHARED_MODES:
+        print(f"WARNING: this cluster is in Shared/Standard access mode ({mode}). Databricks blocks "
+              "the app link on such clusters. Either switch the cluster to Dedicated (single user) "
+              "access mode, or deploy as a Databricks App (see README: 'Databricks Apps').")
+        return False
+    return True
+
+
 check_api_key_secret()
+cluster_allows_driver_proxy()
 
 # COMMAND ----------
 
@@ -259,8 +276,15 @@ _host = spark.conf.get("spark.databricks.workspaceUrl")
 _org = spark.conf.get("spark.databricks.clusterUsageTags.clusterOwnerOrgId")
 _cluster = spark.conf.get("spark.databricks.clusterUsageTags.clusterId")
 APP_URL = f"https://{_host}/driver-proxy/o/{_org}/{_cluster}/{PORT}/"
+_mode = spark.conf.get("spark.databricks.clusterUsageTags.dataSecurityMode", "") or ""
+_blocked = _mode.upper() in {"USER_ISOLATION", "DATA_SECURITY_MODE_STANDARD", "STANDARD"}
+_warning = (f"""<div style="margin:0 0 14px;padding:10px 14px;border-radius:10px;background:#fff4e5;
+  color:#7a4a00">This cluster is in <b>Shared/Standard</b> access mode ({_mode}). Databricks blocks
+  this link on such clusters (“Traffic on this port is not permitted”). Switch the cluster to
+  <b>Dedicated</b> access mode and rerun, or deploy as a <b>Databricks App</b> (see the README).</div>"""
+            if _blocked else "")
 
-displayHTML(f"""
+displayHTML(_warning + f"""
 <div style="font-family: system-ui, sans-serif; font-size: 15px; padding: 8px 0">
   <a href="{APP_URL}" target="_blank" rel="noopener"
      style="background:#16191f;color:#fff;padding:10px 18px;border-radius:10px;text-decoration:none">

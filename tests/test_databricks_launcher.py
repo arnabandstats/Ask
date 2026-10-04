@@ -58,6 +58,11 @@ class _Secrets:
         return self.store[scope][key]
 
 
+class _FakeSpark:
+    def __init__(self, mode):
+        self.conf = type("C", (), {"get": lambda _s, k, d=None: mode if k.endswith("dataSecurityMode") else d})()
+
+
 class _FakeDbutils:
     def __init__(self, widgets, notebook_path="/Users/me/app/databricks_launcher", secrets=None):
         self.widgets = _Widgets(widgets)
@@ -206,10 +211,24 @@ class TestWritableFolder:
 class TestSecretCheck:
     FAKE_KEY = "sk-test-" + "Z" * 40
 
-    def _run(self, store, scope="ask", key="openai-api-key"):
-        ns = {"dbutils": _FakeDbutils({"secret_scope": scope, "secret_key": key}, secrets=store)}
+    def _run(self, store, scope="ask", key="openai-api-key", mode="SINGLE_USER"):
+        ns = {"dbutils": _FakeDbutils({"secret_scope": scope, "secret_key": key}, secrets=store),
+              "spark": _FakeSpark(mode)}
         exec(_cell_containing("def check_api_key_secret"), ns)
         return ns
+
+    @pytest.mark.parametrize("mode", ["USER_ISOLATION", "DATA_SECURITY_MODE_STANDARD"])
+    def test_shared_cluster_warns_about_blocked_link(self, capsys, mode):
+        ns = self._run({"ask": {"openai-api-key": self.FAKE_KEY}}, mode=mode)
+        out = capsys.readouterr().out
+        assert "Shared/Standard access mode" in out and "Databricks App" in out
+        assert ns["cluster_allows_driver_proxy"]() is False
+
+    @pytest.mark.parametrize("mode", ["SINGLE_USER", "DATA_SECURITY_MODE_DEDICATED", ""])
+    def test_dedicated_cluster_no_warning(self, capsys, mode):
+        ns = self._run({"ask": {"openai-api-key": self.FAKE_KEY}}, mode=mode)
+        assert "WARNING" not in capsys.readouterr().out
+        assert ns["cluster_allows_driver_proxy"]() is True
 
     def test_widget_defaults_point_at_ask_scope(self):
         settings = _cell_containing('dbutils.widgets.text("port"')
@@ -248,6 +267,33 @@ class TestSecretCheck:
         check = next(i for i, c in enumerate(cells) if "def check_api_key_secret" in c)
         install = next(i for i, c in enumerate(cells) if "%pip install" in c)
         assert check < install
+
+
+class TestDatabricksAppConfig:
+    TEXT = (ROOT / "app.yaml").read_text(encoding="utf-8")
+
+    def test_runs_streamlit_app(self):
+        assert 'command: ["streamlit", "run", "app.py"]' in self.TEXT
+
+    def test_key_comes_from_app_resource_not_literal(self):
+        lines = self.TEXT.splitlines()
+        i = next(n for n, ln in enumerate(lines) if "name: OPENAI_API_KEY" in ln)
+        assert lines[i + 1].strip() == "valueFrom: openai-api-key"
+        assert "sk-" not in self.TEXT
+
+    def test_data_dir_is_writable_scratch(self):
+        assert "name: ASK_DATA_DIR" in self.TEXT and "value: /tmp/ask_data" in self.TEXT
+
+    def test_requirements_use_headless_opencv(self):
+        reqs = [ln.split("#")[0].strip() for ln in (ROOT / "requirements.txt").read_text().splitlines()]
+        assert "opencv-python-headless" in reqs and "opencv-python" not in reqs
+
+    def test_env_vars_match_what_the_app_reads(self):
+        from ask import config
+        src = (ROOT / "ask" / "config.py").read_text(encoding="utf-8") + (ROOT / "ask" / "llm.py").read_text(encoding="utf-8")
+        for var in ("OPENAI_API_KEY", "USE_AZURE_OPENAI", "ASK_DATA_DIR"):
+            assert var in src, var
+        assert config.DATA_DIR is not None
 
 
 @pytest.mark.parametrize("name", ["app.py", "requirements.txt"])

@@ -28,7 +28,7 @@ scikit-learn
 statsmodels
 imbalanced-learn
 shap
-opencv-python
+opencv-python-headless   # no GUI needed; also imports on servers without display libraries
 xlsxwriter
 
 # ── Tests ────────────────────────────────────────────────────
