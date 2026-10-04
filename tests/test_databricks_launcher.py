@@ -59,8 +59,19 @@ class _Secrets:
 
 
 class _FakeSpark:
+    """mode=None behaves like serverless: cluster settings raise CONFIG_NOT_AVAILABLE."""
+
     def __init__(self, mode):
-        self.conf = type("C", (), {"get": lambda _s, k, d=None: mode if k.endswith("dataSecurityMode") else d})()
+        def get(_self, key, *default):
+            if key.startswith("spark.databricks.clusterUsageTags.") and mode is None:
+                raise RuntimeError("[CONFIG_NOT_AVAILABLE.WITHOUT_SUGGESTION] Configuration "
+                                   f"{key} is not available. SQLSTATE: 42K0I")
+            if key.endswith("dataSecurityMode"):
+                return mode
+            if key.endswith("clusterId"):
+                return "1004-000000-abcdef"
+            return default[0] if default else None
+        self.conf = type("C", (), {"get": get})()
 
 
 class _FakeDbutils:
@@ -223,6 +234,27 @@ class TestSecretCheck:
         out = capsys.readouterr().out
         assert "Shared/Standard access mode" in out and "Databricks App" in out
         assert ns["cluster_allows_driver_proxy"]() is False
+
+    def test_serverless_stops_before_install_with_clear_message(self, capsys):
+        with pytest.raises(RuntimeError, match="SERVERLESS compute.*Databricks App"):
+            self._run({"ask": {"openai-api-key": self.FAKE_KEY}}, mode=None)
+        assert "API key found" in capsys.readouterr().out          # the secret check still ran first
+
+    def test_open_cell_handles_serverless(self):
+        cell = _cell_containing("APP_URL =")
+        ns = {"spark": _FakeSpark(None), "PORT": 8501, "displayHTML": lambda html: None}
+        with pytest.raises(RuntimeError, match="serverless has no driver proxy"):
+            exec(cell, ns)
+
+    def test_open_cell_shows_link_on_dedicated(self):
+        shown = []
+        spark = _FakeSpark("SINGLE_USER")
+        real_get = spark.conf.get
+        spark.conf.get = lambda key, *d: {"spark.databricks.workspaceUrl": "dbc-1.cloud.databricks.com",
+                                          "spark.databricks.clusterUsageTags.clusterOwnerOrgId": "123"
+                                          }.get(key) or real_get(key, *d)
+        exec(_cell_containing("APP_URL ="), {"spark": spark, "PORT": 8501, "displayHTML": shown.append})
+        assert "driver-proxy/o/123/1004-000000-abcdef/8501/" in shown[0] and "Shared/Standard" not in shown[0]
 
     @pytest.mark.parametrize("mode", ["SINGLE_USER", "DATA_SECURITY_MODE_DEDICATED", ""])
     def test_dedicated_cluster_no_warning(self, capsys, mode):

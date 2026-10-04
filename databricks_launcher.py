@@ -87,14 +87,37 @@ def check_api_key_secret():
 SHARED_MODES = {"USER_ISOLATION", "DATA_SECURITY_MODE_STANDARD", "STANDARD"}
 
 
+def spark_conf(key):
+    """A Spark setting, or None. Serverless compute raises CONFIG_NOT_AVAILABLE instead of
+    returning a default, so every lookup is guarded."""
+    try:
+        return spark.conf.get(key)
+    except Exception:
+        return None
+
+
+def compute_kind():
+    """'serverless', 'shared' or 'dedicated'."""
+    mode = spark_conf("spark.databricks.clusterUsageTags.dataSecurityMode")
+    if mode is None or spark_conf("spark.databricks.clusterUsageTags.clusterId") is None:
+        return "serverless"
+    return "shared" if mode.upper() in SHARED_MODES else "dedicated"
+
+
 def cluster_allows_driver_proxy():
-    """The driver proxy (how the app link reaches the driver) is blocked on clusters in
-    Shared / Standard access mode: the link answers 'Traffic on this port is not permitted'."""
-    mode = spark.conf.get("spark.databricks.clusterUsageTags.dataSecurityMode", "") or ""
-    if mode.upper() in SHARED_MODES:
-        print(f"WARNING: this cluster is in Shared/Standard access mode ({mode}). Databricks blocks "
-              "the app link on such clusters. Either switch the cluster to Dedicated (single user) "
-              "access mode, or deploy as a Databricks App (see README: 'Databricks Apps').")
+    """The app link goes through the driver proxy, which does not exist on serverless compute
+    and is blocked on clusters in Shared/Standard access mode ('Traffic on this port is not
+    permitted'). Serverless stops here, before the long install; Shared only warns."""
+    kind = compute_kind()
+    if kind == "serverless":
+        raise RuntimeError(
+            "This notebook is attached to SERVERLESS compute, which cannot serve the app (no "
+            "driver proxy, no writable driver disk). Either attach a classic cluster in Dedicated "
+            "(single user) access mode, or deploy as a Databricks App (README -> 'Databricks Apps').")
+    if kind == "shared":
+        print("WARNING: this cluster is in Shared/Standard access mode. Databricks blocks the app "
+              "link on such clusters. Switch the cluster to Dedicated (single user) access mode, "
+              "or deploy as a Databricks App (README -> 'Databricks Apps').")
         return False
     return True
 
@@ -272,11 +295,21 @@ print(f"App running (pid {proc.pid}) on port {PORT}. Chats are saved in {DATA_DI
 
 # COMMAND ----------
 
-_host = spark.conf.get("spark.databricks.workspaceUrl")
-_org = spark.conf.get("spark.databricks.clusterUsageTags.clusterOwnerOrgId")
-_cluster = spark.conf.get("spark.databricks.clusterUsageTags.clusterId")
+def _conf(key):
+    try:
+        return spark.conf.get(key)
+    except Exception:          # serverless raises CONFIG_NOT_AVAILABLE
+        return None
+
+
+_host = _conf("spark.databricks.workspaceUrl")
+_org = _conf("spark.databricks.clusterUsageTags.clusterOwnerOrgId")
+_cluster = _conf("spark.databricks.clusterUsageTags.clusterId")
+_mode = _conf("spark.databricks.clusterUsageTags.dataSecurityMode") or ""
+if not (_host and _org and _cluster):
+    raise RuntimeError("No app link on this compute (serverless has no driver proxy). Attach a "
+                       "classic cluster in Dedicated access mode, or deploy as a Databricks App.")
 APP_URL = f"https://{_host}/driver-proxy/o/{_org}/{_cluster}/{PORT}/"
-_mode = spark.conf.get("spark.databricks.clusterUsageTags.dataSecurityMode", "") or ""
 _blocked = _mode.upper() in {"USER_ISOLATION", "DATA_SECURITY_MODE_STANDARD", "STANDARD"}
 _warning = (f"""<div style="margin:0 0 14px;padding:10px 14px;border-radius:10px;background:#fff4e5;
   color:#7a4a00">This cluster is in <b>Shared/Standard</b> access mode ({_mode}). Databricks blocks
