@@ -303,8 +303,7 @@ Never paste the key into a notebook cell: notebooks keep a revision history.
 ### 2. Run the launcher notebook
 
 Clone this repository as a **Git folder** and open `databricks_launcher_cluster.ipynb`
-(or `databricks_launcher.py`, the same notebook in Databricks source format) in the repo
-root, next to `app.py`. At the top of the second cell set:
+in the repo root, next to `app.py`. At the top of the second cell set:
 
 | Setting | Meaning |
 |---|---|
@@ -377,8 +376,7 @@ On a laptop, the same paths work once the Databricks CLI is signed in.
 ```
 app.py                       Streamlit entry point (layout, chat loop)
 app.yaml                     Databricks Apps configuration
-databricks_launcher.py       Databricks notebook: run the app on a cluster
-databricks_launcher_cluster.ipynb  the same notebook as .ipynb
+databricks_launcher_cluster.ipynb  Databricks notebook: run the app on a cluster
 requirements.txt
 .env.example                 settings template (copy to .env)
 ask/
@@ -432,7 +430,7 @@ client, and every test gets its own temporary data folder.
 | `test_data_query.py`, `test_compare.py` | Pandas results and 20+ blocked unsafe patterns; every comparison type |
 | `test_builtin_tests.py` | **All 22 built-in tests** run on their own with exact expected outputs; every statistic checked against scikit-learn / statsmodels or a hand-computed answer |
 | `test_runner.py` | Test catalogue, input validation, data quality |
-| `test_databricks_paths.py`, `test_databricks_launcher.py` | Databricks paths and permissions; the launcher notebooks' settings, app environment and link |
+| `test_databricks_paths.py`, `test_databricks_launcher.py` | Databricks paths and permissions; the launcher notebook's settings, app environment and link |
 | `test_store.py`, `test_preferences.py`, `test_render.py` | Chat storage, tool name, message rendering |
 | `test_verbatim.py` | `client_create()`, the test engine and the data-quality checks are pinned by SHA-256 and must not change |
 | `test_no_secrets.py` | No secrets in any committable file |
@@ -448,7 +446,6 @@ client, and every test gets its own temporary data folder.
 | "That is a browser link…" | Paste the path (⋮ → Copy path), not the Databricks URL. |
 | "…does not exist, or the app's service principal can't see it" | Share the folder with the app's service principal (**Can Read**), or `READ VOLUME` on a Volume. |
 | Databricks link says *Traffic on this port is not permitted* | The notebook is on serverless or a Shared/Standard cluster, where the driver proxy is blocked. Use a Dedicated (single user) cluster, or deploy as a Databricks App. |
-| Pull in Databricks shows a merge conflict on `databricks_launcher.py` | Running the notebook on serverless adds an environment header to it. Abort, discard local changes to that file, then Pull. |
 | "Function tools with reasoning_effort are not supported…" | Fixed by the Responses API; on the Chat Completions fallback the app retries with reasoning off automatically. |
 | Answer shows *⚠ … could not be verified* | The model cited lines it hadn't read, or quoted something not in the file. Ask it to re-check, or read the Sources panel. |
 

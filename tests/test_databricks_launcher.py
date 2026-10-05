@@ -1,4 +1,4 @@
-"""The Databricks launcher notebooks: format, syntax, and what they pass to the app."""
+"""The Databricks launcher notebook: format, syntax, and what it passes to the app."""
 from __future__ import annotations
 
 import json
@@ -7,25 +7,29 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-NOTEBOOK = ROOT / "databricks_launcher.py"
-IPYNB = ROOT / "databricks_launcher_cluster.ipynb"
+NOTEBOOK = ROOT / "databricks_launcher_cluster.ipynb"
+
+
+def _notebook() -> dict:
+    return json.loads(NOTEBOOK.read_text(encoding="utf-8"))
 
 
 def _cells() -> list[str]:
-    text = NOTEBOOK.read_text(encoding="utf-8").removeprefix("# Databricks notebook source\n")
-    return [c.strip("\n") for c in text.split("# COMMAND ----------")]
+    return ["".join(c["source"]) for c in _notebook()["cells"]]
 
 
 def _start_cell() -> str:
     return next(c for c in _cells() if "subprocess.Popen" in c)
 
 
-def test_is_a_databricks_source_notebook():
-    assert NOTEBOOK.read_text(encoding="utf-8").startswith("# Databricks notebook source\n")
+def test_is_a_jupyter_notebook_of_code_cells():
+    nb = _notebook()
+    assert nb["nbformat"] == 4
+    assert [c["cell_type"] for c in nb["cells"]] == ["code"] * 3
 
 
 def test_pip_installs_requirements_first():
-    assert _cells()[0] == "# MAGIC %pip install --upgrade --force-reinstall --no-cache-dir -r requirements.txt"
+    assert _cells()[0] == "%pip install --upgrade --force-reinstall --no-cache-dir -r requirements.txt"
 
 
 def test_python_cells_compile():
@@ -81,14 +85,6 @@ def test_context_text_unwraps_scala_options():
     fn = ns["context_text"]
     assert fn("Some(1234567890)") == "1234567890"
     assert fn("None") == "" and fn("null") == ""
-
-
-def test_ipynb_has_the_same_cells():
-    nb = json.loads(IPYNB.read_text(encoding="utf-8"))
-    assert nb["nbformat"] == 4
-    got = ["".join(c["source"]) for c in nb["cells"]]
-    want = [c.replace("# MAGIC ", "", 1) if c.startswith("# MAGIC") else c for c in _cells()]
-    assert got == want
 
 
 class TestDatabricksAppConfig:
