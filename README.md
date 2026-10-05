@@ -6,8 +6,14 @@ deterministic model-validation tests, and compare files, folders and tables. Ans
 code and documents carry line-level citations that are checked automatically against the
 lines the assistant actually read.
 
-Built for model-risk and model-validation work, but useful for any repo, policy document
-or table you need to understand quickly.
+Built for model-risk and model-validation work: the assistant acts as a **senior model
+validator**. It has a library of **243 statistical tests**: 236 deterministic, plus 7 LLM-judge
+tests for GenAI that are labelled as such. They cover PD, LGD, EAD, IFRS 9, early-warning,
+VaR/ES, pricing, CCR/CVA, AML, ML, fairness, GenAI and data quality. It also has a static code
+scanner, checklists for 13 regulations and standards, and Unity Catalog and model-artefact
+access. Every number it reports comes from a test run with a citable, reproducible run ID.
+See [docs/VALIDATOR.md](docs/VALIDATOR.md) for the capability map and
+[docs/TEST_CATALOG.md](docs/TEST_CATALOG.md) for every test.
 
 ---
 
@@ -16,7 +22,8 @@ or table you need to understand quickly.
 - [What you can do](#what-you-can-do)
 - [Quick start (local)](#quick-start-local)
 - [Using the app](#using-the-app)
-- [Built-in deterministic tests](#built-in-deterministic-tests)
+- [Model validation](#model-validation)
+- [Built-in deterministic tests (legacy battery)](#built-in-deterministic-tests-legacy-battery)
 - [How it works](#how-it-works)
 - [Faithfulness: how answers are checked](#faithfulness-how-answers-are-checked)
 - [Configuration](#configuration)
@@ -37,7 +44,13 @@ or table you need to understand quickly.
 | Get an overview of a folder of several projects | `load C:/work/repos` → `what's happening in these repos?` |
 | Read documents (PDF, Word, Markdown, text) | `load "C:/policies/model_policy.pdf"` → `what does it say about annual validation?` |
 | Ask about data | `read the data from D:/data/portfolio.csv` → `default rate by segment, as a chart` |
-| Run model-validation tests | `run the classification tests on this data` |
+| Validate a model | `validate the calibration and discrimination of this PD model` |
+| Back-test a market-risk model | `back-test the VaR in pnl_var.csv at 99%` |
+| Review code and documentation | `scan the code for leakage and hard-coded values`, `check the documentation against the CRR IRB requirements` |
+| Test a model artefact | `load the model /Volumes/risk/models/pd.pkl` → `SHAP and noise robustness on the oot sample` |
+| Evaluate a RAG system | `atomic-fact precision and recall of the answers against the ground truth` |
+| Read a Unity Catalog table | `load main.risk.pd_snapshot (columns pd, default_flag, rating, year)` |
+| Run the legacy test battery | `run the classification tests on this data` |
 | Check data quality | `check the data quality` |
 | Compare two files, folders, documents or tables | `compare v1.csv with v2.csv`, `compare the two policies` |
 | Check code against a document | `does the code implement section 4 of the methodology?` |
@@ -182,9 +195,70 @@ the browser tab and the assistant uses it to refer to itself. It is stored in
 
 ---
 
-## Built-in deterministic tests
+## Model validation
 
-These run real statistics (scikit-learn, statsmodels, SHAP, OpenCV), not the language
+Ask the way you would brief a colleague: "validate this PD model", "back-test the VaR",
+"is the documentation complete for the AI Act?", "write the findings". The agent works
+through documentation, consistency, code, data, conceptual soundness, quantitative tests
+and monitoring. It picks tests from the library and maps your columns to their inputs.
+
+**What it can use:**
+- **Test library** (`ask/validation/t_*.py`): 243 registered tests, each a plain Python
+  function with known-answer unit tests.
+  - Areas: discrimination (AUC with DeLong CI, KS, CAP, ECB AUC-change test), calibration
+    (binomial, Jeffreys, Hosmer–Lemeshow, Spiegelhalter, Vasicek, Brier, Tasche multi-period),
+    rating systems (HHI, migration matrices, MWB), LGD and CCF back-tests (gAUC, loss
+    shortfall, t-tests, CLAR), IFRS 9 (ECL and staging replication, Kaplan–Meier lifetime PD),
+    VaR/ES back-tests (Kupiec, Christoffersen, traffic light, duration, DQ, Acerbi–Szekely,
+    PLA), pricing benchmarks and arbitrage checks, CCR exposure profiles and CVA,
+    econometric diagnostics, ML performance and robustness on the real model, fairness,
+    AML (BTL/ATL, Benford, sample sizes), EWS, GenAI and data quality.
+  - See [docs/TEST_CATALOG.md](docs/TEST_CATALOG.md).
+- **Code review:** `scan_code` runs 44 rules (unseeded randomness, leakage, hard-coding,
+  silent errors, secrets, unpinned dependencies, notebook order, SQL), each with a citable
+  line.
+- **Documentation review:** `check_documentation` checks against 13 checklists: ECB Guide
+  to internal models, CRR IRB, EBA GL 2017/16, 2016/07 and 2019/03, IFRS 9, CRR market-risk
+  IMA/FRTB, CCR IMM, EU AI Act, AML transaction monitoring, SR 11-7, plus generic and GenAI
+  documentation lists.
+  - The tool finds matching lines; the agent reads them and judges adequacy.
+  - `cross_check` compares stated parameters and variables with the code and the data.
+- **Model artefacts:** `load_model` takes .pkl/.joblib files or MLflow `runs:/` and
+  `models:/` URIs (mlflow needed). ML, fairness and robustness tests score the real model.
+  A surrogate is used only when asked for, and labelled SURROGATE.
+- **Unity Catalog:** `load_table`, `profile_table` and `query_table` work through Spark,
+  or through a SQL warehouse (Settings → Validation).
+  - Tables above `ASK_MAX_TABLE_ROWS` are sampled by hash, so every run reads the same rows.
+  - Profiles and aggregations run on the full population.
+
+**Reproducible and traceable:**
+- **What's recorded:** every run saves its parameters, a SHA-256 of the data it read, the
+  seed, the library versions, a hash of the test's code and the run ID to
+  `ask_data/validation_runs/<run_id>.json`. The same inputs and code always give the same
+  run ID and numbers.
+- **Citations:** answers cite results as `[test:<run_id>]`. The *Test runs* panel under an
+  answer shows each run's provenance.
+- **Thresholds:** none are configured yet. Results are reported as statistics, p-values and
+  confidence intervals; zones appear only where a test defines them (Basel traffic light,
+  FRTB PLA).
+- **LLM-judge tests** (GenAI atomic facts, faithfulness, correctness, …) use a pinned model
+  at temperature 0. Replies are cached by prompt hash, so a rerun replays the same
+  judgements. They are always labelled as judge-based.
+
+**Findings and reports:**
+- **Finding format:** findings come as ID, area, description, evidence, root cause, impact,
+  severity, remediation and owner.
+- **Repair checks:** a finding without evidence, a "positive" finding, or a test result
+  cited by an unknown run ID goes back for repair.
+
+---
+
+## Built-in deterministic tests (legacy battery)
+
+The original battery is still available as `run_tests`, with its Excel and HTML export.
+Its stand-in-model results (cross-validation, SHAP, robustness) are labelled SURROGATE,
+because they come from a RandomForest fitted on the validation data, not from the model
+under validation. Its randomness is now seeded. These run real statistics (scikit-learn, statsmodels, SHAP, OpenCV), not the language
 model. Ask in plain words; the assistant picks the model type and the observed /
 predicted / split columns from the data (or asks if they are genuinely unclear).
 
@@ -217,6 +291,10 @@ e.g. "use a 0.3 threshold".
      │   tools: load_path · overview · search · grep · read_file · list_files
      │          data_overview · query_data · make_chart
      │          run_data_quality · list_tests · run_tests · compare
+     │          list_validation_tests · describe_test · run_validation_test
+     │          run_validation_suite · get_test_run · load_model · load_table
+     │          profile_table · query_table · scan_code · list_standards
+     │          check_documentation · cross_check
      ▼
  answer ──► deterministic checks ──► (one repair round if needed) ──► shown + saved
 ```
@@ -253,6 +331,10 @@ After every answer, deterministic checks run (no second model acting as judge):
 3. **Uncited answers** about loaded code or documents are rejected, unless explicitly
    labelled *General knowledge*.
 4. **Claims of charts or figures** that no tool produced are rejected.
+5. **Test results** must cite `[test:<run_id>]` of a run that actually happened. An answer
+   that reports test results without any run citation is sent back.
+6. **Findings** must be deficiencies, each with evidence (`[path:Lx-y]`, `[test:<run_id>]`
+   or table + column).
 
 If anything fails, the model gets one repair round with the exact problems ("these lines
 were never shown to you", "`magic_fn` does not appear in the cited files"). Under the
@@ -276,11 +358,15 @@ Set in `.env` locally (see `.env.example`), or as environment variables.
 | `ASK_DEEP_MODEL` | `gpt-5.6-luna` | Model used when *Think deeper* is on |
 | `ASK_REASONING_EFFORT` | `medium` | Reasoning effort for *Think deeper* (`low` / `medium` / `high`) |
 | `ASK_DATA_DIR` | `./ask_data` | Where chats, outputs and caches are stored |
+| `ASK_VALIDATION_SEED` | `20240601` | Seed for every random step in a test (bootstrap, noise, Monte Carlo) |
+| `ASK_JUDGE_MODEL` | default model | Model for LLM-judge tests (also in Settings → Validation) |
+| `ASK_SQL_WAREHOUSE_ID` | | Databricks SQL warehouse for Unity Catalog tables when there's no Spark session (also in Settings → Validation) |
+| `ASK_MAX_TABLE_ROWS` | `2000000` | Tables above this are hash-sampled deterministically |
 | `ASK_LIVE_TESTS` | | `1` to run the optional tests that call the real API |
 
 Models can also be changed for the current session in Settings → General.
 
-Limits (in `ask/config.py`): 12 tool rounds per answer, 400 lines per `read_file` call,
+Limits (in `ask/config.py`): 20 tool rounds per answer, 60 tests per suite call, 400 lines per `read_file` call,
 5 MB per text file, 6,000 files per repository, the last 12 turns of chat history sent
 with each question.
 
@@ -344,6 +430,24 @@ Only changed files are downloaded again on reload.
 
 On a laptop, the same paths work once the Databricks CLI is signed in.
 
+### 4. Unity Catalog tables and model artefacts
+
+```
+load main.risk.pd_snapshot (columns pd_12m, default_flag, rating, year)
+profile main.risk.loans with key loan_id
+load the model models:/main.risk.pd_model/3
+```
+
+- **How tables are read:** through the active Spark session if there is one. Otherwise
+  through a SQL warehouse: set its ID in Settings → Validation or as `ASK_SQL_WAREHOUSE_ID`.
+- **Launcher notebook:** it runs Ask as a separate process on the driver, which has no Spark
+  session, so set the warehouse ID there too.
+- **Permissions:** whoever runs the query (you, or the app's service principal) needs `SELECT`
+  on the table and `CAN USE` on the warehouse.
+- **Model artefacts:** MLflow URIs need `mlflow`, which is preinstalled on Databricks ML
+  runtimes; elsewhere run `pip install mlflow`. Pickle and joblib files load from local,
+  `/Workspace` or `/Volumes` paths.
+
 ### Where chats live on Databricks
 
 - **Databricks App:** `/tmp/ask_data` inside the app; reset when the app is redeployed.
@@ -386,6 +490,7 @@ ask/
   agent/
     router.py                one turn: fast load, agent loop, checks, repair
     tools.py                 the agent's tools and their schemas
+    validation_tools.py      validator tools: tests, suites, models, tables, code, docs
     llm_call.py              Responses API conversation (+ Chat Completions fallback)
     faithfulness.py          deterministic citation / claim checks
     prompts.py               system and repair prompts
@@ -393,7 +498,19 @@ ask/
     paths.py                 finding paths in chat messages
     loaders.py               reading repos, documents and tables
     databricks.py            /Workspace and /Volumes through the Databricks API
-    registry.py              the sources loaded in a chat
+    registry.py              the sources (and loaded models) in a chat
+    tables.py                Unity Catalog tables: load (hash-sampled), profile, SELECT
+  validation/
+    core.py                  test registry, parameter checks, provenance, run_id
+    t_*.py                   the tests: pd, lgd, ead, ifrs9, ews, econometrics, market,
+                             pricing, ccr, aml, ml, fairness, genai, data, stability
+    code_scan.py             static code-review rules
+    doc_review.py, standards/  regulatory checklists (YAML) and the evidence search
+    models.py                loading and scoring model artefacts
+    judge.py                 LLM judge with a prompt-hash cache
+    store.py                 saved runs (audit trail) and [test:] citation check
+    genai_probes.py          versioned prompt-injection probes
+    catalog_doc.py           writes docs/TEST_CATALOG.md
   retrieval/search.py        BM25 search, grep, read_file, overview (+ evidence)
   analysis/
     test_engine.py           the deterministic test engine
@@ -417,7 +534,9 @@ pytest -m "not slow"                 # skip the real statistics-engine runs (~30
 ASK_LIVE_TESTS=1 pytest -m live      # optional: a few checks against the real model API
 ```
 
-About 480 tests: unit, integration and end-to-end. No test calls the model API unless
+About 840 tests: unit, integration and end-to-end. `tests/validation/` checks every
+statistical test against known answers: textbook values, published examples, scipy,
+statsmodels or scikit-learn, or a hand calculation. No test calls the model API unless
 `ASK_LIVE_TESTS=1`: the agent is driven by a scripted fake model, Databricks by a fake
 client, and every test gets its own temporary data folder.
 
@@ -432,7 +551,8 @@ client, and every test gets its own temporary data folder.
 | `test_runner.py` | Test catalogue, input validation, data quality |
 | `test_databricks_paths.py`, `test_databricks_launcher.py` | Databricks paths and permissions; the launcher notebook's settings, app environment and link |
 | `test_store.py`, `test_preferences.py`, `test_render.py` | Chat storage, tool name, message rendering |
-| `test_verbatim.py` | `client_create()`, the test engine and the data-quality checks are pinned by SHA-256 and must not change |
+| `tests/validation/` | Every validation test (known answers, edge cases, determinism), the code scanner, the checklists, the validator tools, `[test:]` citation and findings checks, and the catalog doc being up to date |
+| `test_verbatim.py` | `client_create()`, the test engine and the data-quality checks are pinned by SHA-256 (the engine's hash was updated deliberately for the seeding and SURROGATE-label fixes) |
 | `test_no_secrets.py` | No secrets in any committable file |
 
 ---

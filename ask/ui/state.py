@@ -1,6 +1,8 @@
 """Session state: which chat is open, its messages, its loaded sources, settings."""
 from __future__ import annotations
 
+import os
+
 import streamlit as st
 
 from ask import config
@@ -18,6 +20,8 @@ def init() -> None:
     ss.setdefault("opt_model", config.DEFAULT_MODEL)
     ss.setdefault("opt_deep_model", config.DEEP_MODEL)
     ss.setdefault("opt_verify", True)
+    ss.setdefault("opt_judge_model", config.JUDGE_MODEL or config.DEFAULT_MODEL)
+    ss.setdefault("opt_warehouse", os.getenv("ASK_SQL_WAREHOUSE_ID", ""))
 
 
 def new_chat() -> None:

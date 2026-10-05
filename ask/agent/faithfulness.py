@@ -131,6 +131,36 @@ def check_visual_claims(answer: str, artifacts: list[dict]) -> list[str]:
     return []
 
 
+_FINDING_ROW = re.compile(r"^\s*\|\s*\**F-\d+\**\s*\|.*$", re.M)
+_NOT_A_DEFICIENCY = re.compile(r"not a deficiency|\bpositive\b|\|\s*(?:n/?a|—|-)\s*\|\s*(?:n/?a|—|-)\s*\|", re.I)
+
+
+def check_findings(answer: str) -> list[str]:
+    """Findings tables hold deficiencies only, and every finding row cites evidence."""
+    out = []
+    for m in _FINDING_ROW.finditer(answer):
+        row = m.group(0)
+        fid = re.search(r"F-\d+", row).group(0)
+        if _NOT_A_DEFICIENCY.search(row):
+            out.append(f"{fid} is not a deficiency. Remove it from the findings table and mention the "
+                       "result in the results section instead.")
+        elif not (CITATION.search(row) or "[test:" in row or re.search(r"\btable\b|\bcolumn\b", row, re.I)):
+            out.append(f"{fid} has no evidence. Cite [path:Lx-y], [test:<run_id>] or table + column, "
+                       "or drop the finding.")
+    return out
+
+
+def check_test_citations(answer: str, runs_this_turn: list[str]) -> list[str]:
+    """[test:<run_id>] citations must name saved runs, and an answer built on test runs
+    must cite them."""
+    from ask.validation import store
+    out = store.check_citations(answer)
+    if runs_this_turn and not store.RUN_CITATION.search(answer) and re.search(r"\d\.\d", answer):
+        out.append("The answer reports results of validation tests but cites none. Put "
+                   "[test:<run_id>] (from the tool output) after each statement based on a test result.")
+    return out
+
+
 def _check_identifiers(answer: str, reg: SourceRegistry, ev: Evidence, rep: Report) -> None:
     """`identifiers` in a paragraph that cites files must appear in a cited or read file."""
     allowed = {s.name for s in reg.sources.values()}

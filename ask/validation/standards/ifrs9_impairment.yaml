@@ -1,0 +1,175 @@
+id: ifrs9_impairment
+title: IFRS 9 Financial Instruments — impairment (Section 5.5 and application guidance B5.5)
+version_note: >-
+  Based on the publicly available IFRS 9 Financial Instruments (IASB, as endorsed in the EU), Section 5.5
+  Impairment, Appendix A definitions and Appendix B application guidance B5.5, plus IFRS 7 credit-risk
+  disclosures. Paraphrased, not quoted. Paragraph numbers are cited where well established; review against the
+  current standard before relying on it.
+applies_to: [ifrs9, pd, lgd, ead]
+requirements:
+  - id: IFRS9-SCOPE-01
+    topic: Scope of impairment
+    requirement: "The documentation defines the instruments in scope of the ECL model (amortised cost and FVOCI debt assets, loan commitments, financial guarantees, lease receivables, contract assets) and those excluded."
+    source: "IFRS 9 para 5.5.1-5.5.2; 2.1"
+    keywords: [scope, amortised cost, FVOCI, loan commitments, financial guarantee, lease receivables, contract assets]
+    evidence_expected: "List of portfolios/instruments covered and exclusions."
+  - id: IFRS9-STG-01
+    topic: 12-month vs lifetime ECL
+    requirement: "A loss allowance equal to 12-month ECL is recognised for instruments without a significant increase in credit risk since initial recognition, and lifetime ECL where credit risk has increased significantly."
+    source: "IFRS 9 para 5.5.3 and 5.5.5"
+    keywords: [12-month ECL, lifetime ECL, stage 1, stage 2, stage 3, staging, loss allowance]
+    patterns: ['\b12[\s-]*month\w*\s+(ECL|expected\s+credit\s+loss)', 'lifetime\s+(ECL|expected\s+credit\s+loss)']
+    evidence_expected: "Staging logic and the ECL horizon used per stage."
+  - id: IFRS9-SICR-01
+    topic: SICR — relative assessment
+    requirement: "Significant increase in credit risk is assessed by comparing the risk of a default occurring over the expected life at the reporting date with that at initial recognition (a relative, not absolute, assessment)."
+    source: "IFRS 9 para 5.5.9; B5.5.7-B5.5.17"
+    keywords: [significant increase in credit risk, SICR, initial recognition, origination, lifetime PD, relative change, risk of default]
+    evidence_expected: "SICR criteria comparing current vs origination lifetime (or proxy) PD."
+  - id: IFRS9-SICR-02
+    topic: SICR — reasonable and supportable information
+    requirement: "The SICR assessment uses reasonable and supportable information available without undue cost or effort, including forward-looking information, and the indicators considered (as in B5.5.17) are documented."
+    source: "IFRS 9 para 5.5.9 and 5.5.11; B5.5.17"
+    keywords: [reasonable and supportable, without undue cost or effort, forward-looking, qualitative indicators, watch list, forbearance]
+    evidence_expected: "Quantitative and qualitative SICR indicators and their sources."
+  - id: IFRS9-SICR-03
+    topic: 30 days past due presumption
+    requirement: "The rebuttable presumption that credit risk has increased significantly when contractual payments are more than 30 days past due is applied as a backstop, and any rebuttal is supported by reasonable and supportable information."
+    source: "IFRS 9 para 5.5.11; B5.5.19-B5.5.20"
+    keywords: [30 days past due, rebuttable presumption, backstop, days past due, rebuttal]
+    patterns: ['\b30\s*(\+\s*)?(days?|dpd)\b']
+    evidence_expected: "30 dpd backstop and any rebuttal with evidence."
+  - id: IFRS9-SICR-04
+    topic: Low credit risk exemption
+    requirement: "If the low credit risk simplification is used, the documentation defines low credit risk (e.g. equivalent to investment grade) and the instruments to which it applies."
+    source: "IFRS 9 para 5.5.10; B5.5.22-B5.5.24"
+    keywords: [low credit risk, investment grade, exemption, simplification, low credit risk exemption]
+    evidence_expected: "Low credit risk definition and portfolios using it."
+  - id: IFRS9-SICR-05
+    topic: Collective assessment
+    requirement: "Where SICR is assessed on a collective basis, instruments are grouped on shared credit risk characteristics so that lifetime ECL is recognised when individual information is not available."
+    source: "IFRS 9 para 5.5.4; B5.5.1-B5.5.6"
+    keywords: [collective basis, collective assessment, shared credit risk characteristics, grouping, portfolio level]
+    evidence_expected: "Grouping criteria and the collective SICR approach."
+  - id: IFRS9-SICR-06
+    topic: Modified assets
+    requirement: "For modified financial assets not derecognised, SICR compares the risk at the reporting date under modified terms with the risk at initial recognition under the original terms."
+    source: "IFRS 9 para 5.5.12; B5.5.25-B5.5.27"
+    keywords: [modification, modified, renegotiated, forbearance, original terms, derecognition]
+    evidence_expected: "Treatment of modifications in staging."
+  - id: IFRS9-SICR-07
+    topic: Transfer back (symmetry)
+    requirement: "Criteria for moving back from lifetime to 12-month ECL when the SICR condition is no longer met are defined (including any probation period applied)."
+    source: "IFRS 9 para 5.5.7"
+    keywords: [transfer back, cure, probation, stage transfer, migration between stages, return to stage 1]
+    evidence_expected: "Stage-transfer rules in both directions."
+  - id: IFRS9-DEF-01
+    topic: Definition of default
+    requirement: "The default definition is consistent with the one used for credit risk management and includes qualitative indicators; the rebuttable presumption that default does not occur later than 90 days past due is applied unless rebutted with reasonable and supportable information."
+    source: "IFRS 9 B5.5.37"
+    keywords: [definition of default, 90 days past due, rebuttable presumption, qualitative indicators, credit risk management]
+    patterns: ['\b90\s*(\+\s*)?(days?|dpd)\b']
+    evidence_expected: "Default definition and its consistency with risk management and regulatory definitions."
+  - id: IFRS9-DEF-02
+    topic: Credit-impaired assets
+    requirement: "Credit-impaired (stage 3) assets are identified using the events in the Appendix A definition (significant financial difficulty, breach of contract such as default or past due, concessions, probable bankruptcy, disappearance of an active market, purchase at a deep discount)."
+    source: "IFRS 9 Appendix A (definition of credit-impaired financial asset)"
+    keywords: [credit-impaired, stage 3, significant financial difficulty, breach of contract, concession, bankruptcy]
+    evidence_expected: "Stage 3 criteria mapped to the Appendix A events."
+  - id: IFRS9-MEAS-01
+    topic: Unbiased probability-weighted amount
+    requirement: "ECL reflects an unbiased and probability-weighted amount determined by evaluating a range of possible outcomes (multiple scenarios where non-linearity matters), not a best- or worst-case estimate."
+    source: "IFRS 9 para 5.5.17(a); B5.5.41-B5.5.43"
+    keywords: [probability-weighted, unbiased, range of possible outcomes, scenarios, scenario weights, non-linearity, multiple scenarios]
+    patterns: ['probability[\s-]+weight\w*']
+    evidence_expected: "Scenarios, weights and the non-linearity analysis."
+  - id: IFRS9-MEAS-02
+    topic: Possibility of no loss
+    requirement: "The measurement reflects both the possibility that a credit loss occurs and the possibility that no credit loss occurs, even if the probability of loss is very low."
+    source: "IFRS 9 para 5.5.18"
+    keywords: [possibility that a credit loss occurs, no credit loss, low probability, zero loss]
+    evidence_expected: "Statement that ECL is not set to zero for low-risk exposures without analysis."
+  - id: IFRS9-MEAS-03
+    topic: Time value of money
+    requirement: "Expected cash shortfalls are discounted to the reporting date using the effective interest rate determined at initial recognition (or an approximation), and the credit-adjusted EIR for POCI assets."
+    source: "IFRS 9 para 5.5.17(b); B5.5.44-B5.5.48"
+    keywords: [time value of money, discount, effective interest rate, EIR, credit-adjusted effective interest rate, discounting]
+    evidence_expected: "Discount rate used in the ECL calculation."
+  - id: IFRS9-MEAS-04
+    topic: Forward-looking information
+    requirement: "ECL incorporates reasonable and supportable information about past events, current conditions and forecasts of future economic conditions, with the macroeconomic scenarios, variables and their link to risk parameters documented."
+    source: "IFRS 9 para 5.5.17(c); B5.5.49-B5.5.54"
+    keywords: [forward-looking, macroeconomic, forecasts, scenarios, satellite model, macro variables, future economic conditions]
+    evidence_expected: "FLI methodology: variables, scenario sources, satellite models."
+  - id: IFRS9-MEAS-05
+    topic: Historical information adjusted
+    requirement: "Historical loss information is adjusted to reflect current observable conditions and forecasts that did not affect the historical period, and estimates are compared with actual outcomes to reduce differences."
+    source: "IFRS 9 B5.5.52"
+    keywords: [historical information, adjusted, current conditions, back-testing, actual outcomes, compare estimates]
+    evidence_expected: "Adjustments from historical data and back-testing of ECL against actual losses."
+  - id: IFRS9-MEAS-06
+    topic: Maximum contractual period
+    requirement: "The period over which ECL is measured is the maximum contractual period (including extension options) over which the entity is exposed to credit risk."
+    source: "IFRS 9 para 5.5.19; B5.5.38"
+    keywords: [contractual period, maximum period, extension options, expected life, lifetime, maturity]
+    evidence_expected: "Lifetime definition and treatment of prepayment/extension options."
+  - id: IFRS9-MEAS-07
+    topic: Revolving facilities
+    requirement: "For revolving facilities with drawn and undrawn components where the contractual ability to cancel does not limit exposure, ECL is measured over the period the entity is exposed, which may extend beyond the contractual period."
+    source: "IFRS 9 para 5.5.20; B5.5.39-B5.5.40"
+    keywords: [revolving, credit card, overdraft, behavioural life, undrawn commitment, exposure period]
+    evidence_expected: "Behavioural life for revolvers and its derivation."
+  - id: IFRS9-MEAS-08
+    topic: Lifetime PD, LGD and EAD
+    requirement: "The lifetime PD term structure, LGD and EAD (including amortisation, prepayment and drawdown) used in ECL are point-in-time, forward-looking and free of regulatory conservatism (floors, MoC, downturn) unless justified."
+    source: "IFRS 9 para 5.5.17; B5.5 (measurement); comparison with CRR parameters"
+    keywords: [lifetime PD, term structure, point-in-time, PIT, prepayment, amortisation, regulatory conservatism, margin of conservatism, downturn]
+    evidence_expected: "Description of PIT adjustments from regulatory parameters and removal of conservatism."
+  - id: IFRS9-MEAS-09
+    topic: Collateral and credit enhancements
+    requirement: "Expected cash flows include those from collateral and other credit enhancements that are part of the contractual terms and not recognised separately."
+    source: "IFRS 9 B5.5.55"
+    keywords: [collateral, credit enhancements, guarantees, cash flows from collateral, recovery]
+    evidence_expected: "Treatment of collateral and guarantees in LGD for ECL."
+  - id: IFRS9-POCI-01
+    topic: Purchased or originated credit-impaired
+    requirement: "For POCI assets, the loss allowance is the cumulative change in lifetime ECL since initial recognition, discounted at the credit-adjusted effective interest rate."
+    source: "IFRS 9 para 5.5.13-5.5.14"
+    keywords: [POCI, purchased or originated credit-impaired, credit-adjusted effective interest rate, cumulative changes]
+    evidence_expected: "POCI identification and measurement."
+  - id: IFRS9-SIMP-01
+    topic: Simplified approach
+    requirement: "Where the simplified approach is used for trade receivables, contract assets or lease receivables, lifetime ECL is always recognised and any provision matrix is documented."
+    source: "IFRS 9 para 5.5.15-5.5.16; B5.5.35"
+    keywords: [simplified approach, provision matrix, trade receivables, contract assets, lease receivables]
+    evidence_expected: "Use of simplified approach and provision matrix."
+  - id: IFRS9-OVL-01
+    topic: Post-model adjustments
+    requirement: "Post-model adjustments and management overlays are identified, quantified, justified by risks not captured by the models, governed and tracked for release."
+    source: "IFRS 9 para 5.5.17 (all reasonable and supportable information); supervisory expectations on overlays"
+    keywords: [overlay, post-model adjustment, PMA, management adjustment, top-side adjustment, in-model adjustment]
+    evidence_expected: "Overlay inventory with amounts, rationale and governance."
+  - id: IFRS9-WO-01
+    topic: Write-off
+    requirement: "The write-off policy (when there is no reasonable expectation of recovery) is defined and consistent with the LGD/recovery assumptions."
+    source: "IFRS 9 para 5.4.4"
+    keywords: [write-off, written off, no reasonable expectation of recovery, recovery]
+    evidence_expected: "Write-off policy and its link to LGD."
+  - id: IFRS7-DISC-01
+    topic: Disclosure of credit risk practices
+    requirement: "Disclosures explain how SICR is determined, the definition of default and reasons for it, how instruments are grouped, the write-off policy and the treatment of modifications."
+    source: "IFRS 7 para 35F"
+    keywords: [disclosure, IFRS 7, credit risk management practices, definition of default, write-off policy, grouping]
+    evidence_expected: "Link between model documentation and IFRS 7 disclosures."
+  - id: IFRS7-DISC-02
+    topic: Disclosure of inputs and assumptions
+    requirement: "The inputs, assumptions and estimation techniques used to measure ECL, assess SICR and determine credit impairment, including forward-looking information and changes during the period, are described."
+    source: "IFRS 7 para 35G"
+    keywords: [inputs, assumptions, estimation techniques, forward-looking, changes in estimation techniques, IFRS 7]
+    evidence_expected: "Documentation supporting the 35G disclosures."
+  - id: IFRS9-VAL-01
+    topic: Sensitivity analysis
+    requirement: "The sensitivity of ECL to key assumptions (scenario weights, macro forecasts, SICR thresholds, LGD assumptions) is analysed and documented."
+    source: "IFRS 9 para 5.5.17 (probability-weighted measurement); IAS 1 para 125 (sources of estimation uncertainty)"
+    keywords: [sensitivity analysis, sensitivity, scenario weights, SICR threshold, estimation uncertainty, what-if]
+    evidence_expected: "Sensitivity tables of ECL to key assumptions."

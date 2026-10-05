@@ -4,6 +4,8 @@ Run:  streamlit run app.py
 """
 from __future__ import annotations
 
+import os
+
 import streamlit as st
 
 from ask import config, preferences
@@ -66,11 +68,14 @@ if prompt:
         def _status(msg: str) -> None:
             indicator.markdown(styles.thinking_html(msg[:140]), unsafe_allow_html=True)
 
+        if ss.opt_warehouse.strip():              # Settings → Validation; read by ask.sources.tables
+            os.environ["ASK_SQL_WAREHOUSE_ID"] = ss.opt_warehouse.strip()
         try:
             turn = router.answer(prompt, ss.registry, history, model=state.model(),
                                  verify=ss.opt_verify, output_dir=config.OUTPUT_DIR / cid,
                                  status=_status,
-                                 reasoning_effort=config.DEEP_REASONING_EFFORT if ss.opt_deep else None)
+                                 reasoning_effort=config.DEEP_REASONING_EFFORT if ss.opt_deep else None,
+                                 judge_model=ss.opt_judge_model.strip() or None)
         except EnvironmentError as exc:
             turn = router.Turn(content=f"**Setup problem:** {exc}")
         except Exception as exc:  # API errors, network, unexpected tool failures

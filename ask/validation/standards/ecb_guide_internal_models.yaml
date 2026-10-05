@@ -1,0 +1,298 @@
+id: ecb_guide_internal_models
+title: ECB Guide to internal models
+version_note: >-
+  Based on the publicly available ECB Guide to internal models (revised version published in 2024, chapters:
+  General topics, Credit risk, Market risk, Counterparty credit risk). The Guide sets out the ECB's understanding
+  of the CRR requirements; it is not legally binding in itself. Paraphrased and cited by chapter/section, not by
+  paragraph number. Review against the current text (the ECB revises the Guide periodically) before relying on it.
+applies_to: [pd, lgd, ead, var, ccr]
+requirements:
+  # ── General topics ───────────────────────────────────────────────────────
+  - id: ECB-GEN-01
+    topic: Model risk management framework
+    requirement: "The model is covered by the institution's model risk management framework, which identifies, measures, monitors and mitigates model risk across the model life cycle."
+    source: "ECB Guide to internal models, General topics (overarching principles: model risk management)"
+    keywords: [model risk management, model risk, MRM, model life cycle, model risk framework, model tiering]
+    evidence_expected: "Reference to the MRM framework, the model's risk tier and life-cycle stage."
+  - id: ECB-GEN-02
+    topic: Model inventory
+    requirement: "The model is recorded in the model inventory with its scope, owner, users, version, status, validation and approval history and related findings."
+    source: "ECB Guide to internal models, General topics (model risk management: model inventory)"
+    keywords: [model inventory, model register, model ID, owner, version, status, model landscape]
+    evidence_expected: "Inventory ID and the inventory attributes recorded for the model."
+  - id: ECB-GEN-03
+    topic: Roles and responsibilities
+    requirement: "Roles and responsibilities for model development, approval, use, validation and audit are defined and documented, with the management body and senior management informed of material model risk."
+    source: "ECB Guide to internal models, General topics (internal governance)"
+    keywords: [roles and responsibilities, management body, senior management, model owner, model user, approval, governance]
+    evidence_expected: "RACI-type description of model governance and escalation to senior management."
+  - id: ECB-GEN-04
+    topic: Model documentation standard
+    requirement: "Model documentation is sufficiently detailed for a knowledgeable third party to understand the model's design, assumptions, data, methodology, limitations and use, and to replicate its development."
+    source: "ECB Guide to internal models, General topics; CRR Art. 175"
+    keywords: [documentation, third party, replicate, replicability, design, assumptions, limitations]
+    evidence_expected: "Completeness of the documentation set (development, methodology, data, implementation, user manual)."
+  - id: ECB-GEN-05
+    topic: Validation independence
+    requirement: "The internal validation function is independent of model development and of the business units using the model, has sufficient resources and expertise, and reports to an appropriate level of management."
+    source: "ECB Guide to internal models, General topics (internal validation: independence)"
+    keywords: [independent validation, independence, validation function, resources, expertise, reporting line]
+    evidence_expected: "Organisational position of validation, staffing, and reporting lines."
+  - id: ECB-GEN-06
+    topic: Validation scope and frequency
+    requirement: "Internal validation covers initial validation of new models and material changes, and regular (at least annual) validation of models in use, covering qualitative and quantitative aspects."
+    source: "ECB Guide to internal models, General topics (internal validation: content and frequency); CRR Art. 185"
+    keywords: [initial validation, regular validation, annual validation, full validation, validation scope, qualitative, quantitative]
+    patterns: ['at\s+least\s+(once\s+)?(a\s+year|annually)']
+    evidence_expected: "Validation plan/report with scope, frequency and type (initial, regular, change)."
+  - id: ECB-GEN-07
+    topic: Validation methodology content
+    requirement: "Validation assesses the model's design, risk drivers, data (including representativeness), discriminatory power, calibration/predictive ability, stability, and the adequacy of the margin of conservatism, using predefined methods and metrics."
+    source: "ECB Guide to internal models, General topics (internal validation); Credit risk chapter"
+    keywords: [discriminatory power, calibration, predictive ability, stability, representativeness, validation tests, metrics]
+    evidence_expected: "Validation test catalogue and results per area."
+  - id: ECB-GEN-08
+    topic: Validation findings and remediation
+    requirement: "Validation findings are graded by severity, reported to the relevant committees and management, and tracked through remediation plans with owners and deadlines."
+    source: "ECB Guide to internal models, General topics (internal validation: reporting and follow-up)"
+    keywords: [findings, severity, remediation, action plan, follow-up, deadline, recommendations]
+    evidence_expected: "Findings log with severity, owners, deadlines and status."
+  - id: ECB-GEN-09
+    topic: Internal audit
+    requirement: "Internal audit reviews the model framework, including the work of the validation function, on a risk-based schedule and at least annually for IRB rating systems."
+    source: "ECB Guide to internal models, General topics (internal audit); CRR Art. 191"
+    keywords: [internal audit, audit review, audit plan, at least annually, audit findings]
+    evidence_expected: "Internal audit coverage and latest review."
+  - id: ECB-GEN-10
+    topic: Model use
+    requirement: "The model's outputs are used in internal processes (credit approval, pricing, limits, monitoring, provisioning or capital allocation as relevant), and any differences between regulatory and internal uses are documented and justified."
+    source: "ECB Guide to internal models, General topics (model use); CRR Art. 144(1)"
+    keywords: [use test, model use, credit approval, pricing, limits, internal use, regulatory use, differences]
+    evidence_expected: "Description of uses and justification of differences."
+  - id: ECB-GEN-11
+    topic: Management of model changes
+    requirement: "Model changes are classified (material, non-material requiring notification, other) according to the applicable change regulation and the institution's change policy, and the classification and its rationale are documented."
+    source: "ECB Guide to internal models, General topics (management of changes); Commission Delegated Regulation (EU) No 529/2014 (IRB changes)"
+    keywords: [material change, model change, change classification, notification, change policy, 529/2014, extension]
+    evidence_expected: "Change classification with quantitative and qualitative criteria and approval status."
+  - id: ECB-GEN-12
+    topic: Third-party involvement
+    requirement: "Where third parties (vendors, consultants, group entities) are involved in model development, data or validation, the institution retains responsibility, understanding and control, and documents the involvement."
+    source: "ECB Guide to internal models, General topics (third-party involvement)"
+    keywords: [third party, vendor, outsourcing, consultant, external provider, group entity]
+    evidence_expected: "Description of third-party roles and the institution's oversight."
+  - id: ECB-GEN-13
+    topic: Roll-out and permanent partial use
+    requirement: "The model's coverage within the IRB roll-out plan and any exposures under permanent partial use are identified and justified."
+    source: "ECB Guide to internal models, General topics (roll-out and permanent partial use); CRR Art. 148 and 150"
+    model_types: [pd, lgd, ead]
+    keywords: [roll-out plan, permanent partial use, PPU, standardised approach, coverage, IRB perimeter]
+    evidence_expected: "Roll-out/PPU status of the portfolios in scope."
+  # ── Credit risk ──────────────────────────────────────────────────────────
+  - id: ECB-CR-01
+    topic: Data quality framework
+    requirement: "A data quality management framework covers the data used for model development, calibration and application, with checks over data quality dimensions (completeness, accuracy, consistency, timeliness, uniqueness, validity, availability/accessibility, traceability) and documented results."
+    source: "ECB Guide to internal models, Credit risk (data maintenance for the IRB approach)"
+    model_types: [pd, lgd, ead]
+    keywords: [data quality, completeness, accuracy, consistency, timeliness, uniqueness, validity, traceability]
+    evidence_expected: "Data quality framework results and data lineage for the model's data."
+  - id: ECB-CR-02
+    topic: Use of data — representativeness
+    requirement: "The institution assesses the representativeness of the data used for risk differentiation and for risk quantification against the application portfolio and documents the outcome and mitigants."
+    source: "ECB Guide to internal models, Credit risk (use of data for training, calibration and validation)"
+    model_types: [pd, lgd, ead]
+    keywords: [representativeness, representative, application portfolio, training data, calibration data, distribution]
+    evidence_expected: "Representativeness tests (e.g. PSI, distribution comparison) and conclusions."
+  - id: ECB-CR-03
+    topic: Definition of default in data
+    requirement: "The default definition used in the model's development and calibration data is consistent with the current default definition, or adjustments and MoC are applied."
+    source: "ECB Guide to internal models, Credit risk (definition of default)"
+    model_types: [pd, lgd, ead]
+    keywords: [definition of default, default definition, consistent, adjustment, DoD, margin of conservatism]
+    evidence_expected: "Default definition used per data period and adjustments made."
+  - id: ECB-CR-04
+    topic: PD model structure and risk drivers
+    requirement: "The PD model's structure, segmentation and risk drivers are justified with statistical and business analysis, and the treatment of missing values and outliers is documented."
+    source: "ECB Guide to internal models, Credit risk (probability of default: structure of PD models; risk differentiation)"
+    model_types: [pd]
+    keywords: [risk drivers, segmentation, model structure, missing values, outliers, variable selection, business rationale]
+    evidence_expected: "Risk-driver analysis, segmentation rationale and data treatment."
+  - id: ECB-CR-05
+    topic: PD rating philosophy
+    requirement: "The rating philosophy of the PD model is defined and its consequences for grade migrations, default-rate volatility and validation are understood."
+    source: "ECB Guide to internal models, Credit risk (probability of default: rating philosophy)"
+    model_types: [pd]
+    keywords: [rating philosophy, point-in-time, through-the-cycle, PIT, TTC, migration, cyclicality]
+    evidence_expected: "Stated philosophy with supporting analysis."
+  - id: ECB-CR-06
+    topic: PD calibration to long-run average
+    requirement: "PD calibration targets the long-run average default rate computed from one-year default rates over a period that reflects a representative mix of good and bad years, and the calibration is tested at grade level."
+    source: "ECB Guide to internal models, Credit risk (probability of default: risk quantification and calibration); CRR Art. 180"
+    model_types: [pd]
+    keywords: [long-run average, one-year default rate, calibration, good and bad years, grade level, LRA]
+    patterns: ['long[\s-]+run\s+average']
+    evidence_expected: "LRA computation, cycle coverage analysis and grade-level calibration tests."
+  - id: ECB-CR-07
+    topic: Low-default portfolios
+    requirement: "Where the number of defaults is low, the institution documents the methods used to quantify PD (e.g. statistical bounds, external data, benchmark mapping) and the associated conservatism."
+    source: "ECB Guide to internal models, Credit risk (probability of default)"
+    model_types: [pd]
+    keywords: [low default portfolio, low-default, LDP, few defaults, Pluto and Tasche, benchmark, external data]
+    evidence_expected: "LDP approach and resulting conservatism."
+  - id: ECB-CR-08
+    topic: Realised LGD
+    requirement: "Realised LGD includes all recoveries, direct and indirect costs and additional drawings, discounted to the default date, and the treatment of incomplete recovery processes is specified."
+    source: "ECB Guide to internal models, Credit risk (loss given default: realised LGD); EBA/GL/2017/16"
+    model_types: [lgd]
+    keywords: [realised LGD, recoveries, direct costs, indirect costs, discount, incomplete recovery, additional drawings]
+    evidence_expected: "Realised LGD computation including all components."
+  - id: ECB-CR-09
+    topic: LGD quantification and downturn
+    requirement: "The LGD is calibrated to the long-run average LGD (default-weighted) and adjusted to downturn conditions where more conservative, with MoC applied."
+    source: "ECB Guide to internal models, Credit risk (loss given default); CRR Art. 181"
+    model_types: [lgd]
+    keywords: [long-run average LGD, downturn, default-weighted, calibration, margin of conservatism]
+    evidence_expected: "LRA LGD, downturn adjustment and MoC per calibration segment."
+  - id: ECB-CR-10
+    topic: ELBE and LGD in-default
+    requirement: "ELBE and LGD in-default are estimated for defaulted exposures by time in default (reference dates), with ELBE compared with specific credit risk adjustments."
+    source: "ECB Guide to internal models, Credit risk (loss given default: defaulted exposures)"
+    model_types: [lgd]
+    keywords: [ELBE, LGD in-default, reference dates, time in default, specific credit risk adjustments]
+    evidence_expected: "ELBE/LGD in-default methodology and comparison to provisions."
+  - id: ECB-CR-11
+    topic: Realised CCF — fixed horizon
+    requirement: "Realised CCFs are computed with a fixed-horizon approach (reference date 12 months before default), and the treatment of facilities with zero or small undrawn amounts is documented."
+    source: "ECB Guide to internal models, Credit risk (credit conversion factors)"
+    model_types: [ead]
+    keywords: [fixed horizon, 12 months, twelve months, reference date, realised CCF, undrawn amount, cohort approach]
+    patterns: ['\b(12|twelve)[\s-]+months?\b']
+    evidence_expected: "Realised CCF formula, reference date approach and treatment of small undrawn amounts."
+  - id: ECB-CR-12
+    topic: CCF scope and quantification
+    requirement: "The scope of CCF models (facility types, commitments) is defined, CCF is calibrated to the default-weighted long-run average and adjusted for downturn where more conservative."
+    source: "ECB Guide to internal models, Credit risk (credit conversion factors); CRR Art. 182"
+    model_types: [ead]
+    keywords: [CCF, conversion factor, default-weighted, long-run average, downturn, commitments, facility types]
+    evidence_expected: "CCF scope and calibration results."
+  - id: ECB-CR-13
+    topic: Model-related MoC
+    requirement: "Model-related margins of conservatism are quantified per deficiency category, applied consistently, and reduced only when the underlying deficiency is remedied."
+    source: "ECB Guide to internal models, Credit risk (model-related margin of conservatism); EBA/GL/2017/16"
+    model_types: [pd, lgd, ead]
+    keywords: [margin of conservatism, MoC, deficiency, category A, category B, category C, remediation]
+    evidence_expected: "MoC framework and quantification for this model."
+  - id: ECB-CR-14
+    topic: Human judgement and overrides
+    requirement: "The use of human judgement in model development and application (including overrides) is governed, documented and its impact monitored."
+    source: "ECB Guide to internal models, Credit risk"
+    model_types: [pd, lgd, ead]
+    keywords: [human judgement, expert judgement, override, override rate, monitoring, qualitative module]
+    evidence_expected: "Override and judgement governance and statistics."
+  # ── Market risk ──────────────────────────────────────────────────────────
+  - id: ECB-MR-01
+    topic: Scope of the internal model
+    requirement: "The scope of the internal market risk model (desks, positions, risk factors and risk categories) is documented, together with positions excluded and their treatment."
+    source: "ECB Guide to internal models, Market risk (scope of the internal model approach)"
+    model_types: [var]
+    keywords: [scope, trading desk, positions, risk categories, exclusions, standardised approach, IMA]
+    evidence_expected: "Scope table of desks/positions/risk factors and exclusions."
+  - id: ECB-MR-02
+    topic: Risk factor coverage and proxies
+    requirement: "All material risk factors of the positions in scope are captured; proxies are justified, documented and their adequacy is tested."
+    source: "ECB Guide to internal models, Market risk (methodology for VaR and sVaR: risk factors)"
+    model_types: [var]
+    keywords: [risk factors, proxies, proxy, risk factor coverage, missing risk factors, time series]
+    evidence_expected: "Risk factor mapping, list of proxies and proxy adequacy tests."
+  - id: ECB-MR-03
+    topic: Risks not in the model engines
+    requirement: "Risks not captured or not adequately captured in the model engines (RNIME) are identified, quantified and capitalised or otherwise addressed, with a documented framework."
+    source: "ECB Guide to internal models, Market risk (risks not in model engines)"
+    model_types: [var]
+    keywords: [RNIME, risks not in the model, risks not in VaR, RNIV, missing risks, model engines]
+    evidence_expected: "RNIME inventory, quantification and treatment."
+  - id: ECB-MR-04
+    topic: VaR and sVaR methodology
+    requirement: "The VaR and stressed VaR methodology, including time series, scaling to the holding period, data updates and the stressed period selection, is documented and justified."
+    source: "ECB Guide to internal models, Market risk (methodology for VaR and sVaR); CRR Art. 365"
+    model_types: [var]
+    keywords: [VaR, stressed VaR, sVaR, holding period, scaling, square root of time, stress period, historical simulation]
+    evidence_expected: "Methodology description, scaling approach and stress period selection analysis."
+  - id: ECB-MR-05
+    topic: Regulatory back-testing
+    requirement: "Regulatory back-testing compares daily VaR with actual and hypothetical P&L, with P&L definitions documented, and every overshooting analysed and explained."
+    source: "ECB Guide to internal models, Market risk (regulatory back-testing of VaR models); CRR Art. 366"
+    model_types: [var]
+    keywords: [back-testing, overshooting, hypothetical P&L, actual P&L, hypothetical changes, actual changes, exceptions]
+    evidence_expected: "Back-testing results with overshooting analysis and P&L definitions."
+  - id: ECB-MR-06
+    topic: Internal validation of market risk models
+    requirement: "Internal validation of the market risk model covers methodology, risk factor coverage, pricing functions used in the model, data, back-testing beyond regulatory requirements (e.g. hypothetical portfolios, other percentiles) and RNIME."
+    source: "ECB Guide to internal models, Market risk (internal validation); CRR Art. 369"
+    model_types: [var]
+    keywords: [internal validation, pricing functions, hypothetical portfolios, other percentiles, data, methodology, validation]
+    evidence_expected: "Validation report sections on each area."
+  - id: ECB-MR-07
+    topic: Pricing in the risk engine
+    requirement: "Pricing functions in the risk engine are consistent with front-office valuation or the differences are quantified and justified."
+    source: "ECB Guide to internal models, Market risk"
+    model_types: [var]
+    keywords: [pricing, front office, revaluation, full revaluation, sensitivities, Taylor approximation, pricing differences]
+    evidence_expected: "Comparison of risk-engine and front-office valuations."
+  - id: ECB-MR-08
+    topic: Incremental risk charge
+    requirement: "Where an IRC model is used, its methodology (default and migration modelling, correlation, liquidity horizons, constant level of risk) and validation are documented."
+    source: "ECB Guide to internal models, Market risk (incremental default and migration risk charge); CRR Art. 372-376"
+    model_types: [var]
+    keywords: [IRC, incremental risk charge, migration, liquidity horizon, constant level of risk, default risk]
+    evidence_expected: "IRC methodology and validation."
+  # ── Counterparty credit risk ─────────────────────────────────────────────
+  - id: ECB-CCR-01
+    topic: IMM scope
+    requirement: "The scope of the IMM (products, netting sets, counterparties) and the treatment of out-of-scope trades are documented."
+    source: "ECB Guide to internal models, Counterparty credit risk (scope)"
+    model_types: [ccr]
+    keywords: [scope, IMM, netting set, products, counterparties, out of scope, permanent partial use]
+    evidence_expected: "IMM scope description and coverage."
+  - id: ECB-CCR-02
+    topic: Scenario generation
+    requirement: "The risk-factor scenario generation (model choice, calibration data and period, historical vs risk-neutral calibration, correlations) is documented and validated."
+    source: "ECB Guide to internal models, Counterparty credit risk (risk factor modelling)"
+    model_types: [ccr]
+    keywords: [scenario generation, risk factor, calibration, historical calibration, risk-neutral, correlation, Monte Carlo]
+    evidence_expected: "Risk-factor models, calibration approach and validation results."
+  - id: ECB-CCR-03
+    topic: Margin period of risk
+    requirement: "The margin period of risk used for margined netting sets meets the CRR floors and is increased where required (large netting sets, illiquid collateral, margin disputes)."
+    source: "ECB Guide to internal models, Counterparty credit risk (margin period of risk); CRR Art. 285"
+    model_types: [ccr]
+    keywords: [margin period of risk, MPOR, margin disputes, illiquid collateral, netting set, business days]
+    evidence_expected: "MPOR by netting set type and the increases applied."
+  - id: ECB-CCR-04
+    topic: Collateral modelling
+    requirement: "Collateral and margining (thresholds, minimum transfer amounts, independent amounts, initial margin) are modelled in the exposure simulation, and the modelling is validated."
+    source: "ECB Guide to internal models, Counterparty credit risk (collateral modelling)"
+    model_types: [ccr]
+    keywords: [collateral, threshold, minimum transfer amount, initial margin, variation margin, CSA, independent amount]
+    evidence_expected: "Collateral modelling description and tests."
+  - id: ECB-CCR-05
+    topic: CCR back-testing
+    requirement: "Back-testing of the exposure model covers risk-factor forecasts and representative (including hypothetical) portfolios over several forecast horizons, with documented methods and results."
+    source: "ECB Guide to internal models, Counterparty credit risk (back-testing); CRR Art. 293-294"
+    model_types: [ccr]
+    keywords: [back-testing, risk factor back-testing, portfolio back-testing, hypothetical portfolios, forecast horizons, PIT distribution]
+    evidence_expected: "CCR back-testing framework and results."
+  - id: ECB-CCR-06
+    topic: Wrong-way risk and alpha
+    requirement: "Specific and general wrong-way risk are identified and treated, and the alpha used (regulatory or own estimate) is documented."
+    source: "ECB Guide to internal models, Counterparty credit risk; CRR Art. 284 and 291"
+    model_types: [ccr]
+    keywords: [wrong-way risk, specific wrong-way risk, general wrong-way risk, alpha, "1.4", EEPE]
+    evidence_expected: "WWR identification process and alpha treatment."
+  - id: ECB-CCR-07
+    topic: Stressed calibration
+    requirement: "Effective EPE is computed with both current and stressed parameter calibration and the stressed period selection is documented."
+    source: "ECB Guide to internal models, Counterparty credit risk; CRR Art. 284"
+    model_types: [ccr]
+    keywords: [stressed calibration, stressed period, current calibration, effective EPE, EEPE, stress period]
+    evidence_expected: "Stress-period selection and comparison of current vs stressed EEPE."

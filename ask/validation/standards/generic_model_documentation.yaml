@@ -1,0 +1,117 @@
+id: generic_model_documentation
+title: Model documentation minimum content (generic checklist)
+version_note: >-
+  Generic minimum-content checklist for model documentation of any model type, especially those without a
+  model-specific regulation (e.g. pricing/valuation, ML, GenAI). Compiled from externally available sources: CRR
+  Art. 175 (IRB documentation), ECB Guide to internal models (General topics), SR 11-7 (US benchmark) and EU AI Act
+  Annex IV. It is a good-practice checklist, not a legal requirement in itself.
+applies_to: [pd, lgd, ead, ifrs9, ews, satellite, var, pricing, ccr, aml, ml_classification, ml_regression, ml_unsupervised, genai, general]
+requirements:
+  - id: GEN-DOC-01
+    topic: Purpose and scope
+    requirement: "The documentation states the model's purpose, the business problem it addresses and its scope (portfolios, products, entities, geographies) including exclusions."
+    source: "SR 11-7 Section IV; ECB Guide to internal models (General topics); CRR Art. 175(1)"
+    keywords: [purpose, objective, scope, perimeter, exclusions, portfolio, business problem]
+    evidence_expected: "Purpose and scope section."
+  - id: GEN-DOC-02
+    topic: Intended use and users
+    requirement: "Intended uses, users and decisions supported by the model are listed, together with uses that are out of scope or prohibited."
+    source: "SR 11-7 Section IV (model use); EU AI Act Art. 13 and Annex IV point 1"
+    keywords: [intended use, users, use cases, decisions, out of scope, not intended, prohibited use]
+    evidence_expected: "Model use section including out-of-scope uses."
+  - id: GEN-DOC-03
+    topic: Ownership and approval
+    requirement: "The model owner, developer, validator and approving body are named, with approval dates and the model's risk tier."
+    source: "ECB Guide to internal models (General topics: governance); SR 11-7 Section VI"
+    keywords: [model owner, developer, approval, approved by, committee, risk tier, sign-off, materiality]
+    evidence_expected: "Governance block with names/roles, dates, tier."
+  - id: GEN-DOC-04
+    topic: Data sources and lineage
+    requirement: "Data sources, extraction dates, lineage to source systems and data dictionaries for all inputs are documented."
+    source: "CRR Art. 175(4)(a); ECB Guide to internal models (data); EU AI Act Annex IV point 2"
+    keywords: [data sources, lineage, data dictionary, source system, extraction, data description]
+    evidence_expected: "Data sources table and data dictionary."
+  - id: GEN-DOC-05
+    topic: Data quality and treatment
+    requirement: "Data quality checks, exclusions (with counts), missing-value and outlier treatments are documented with their impact."
+    source: "CRR Art. 174(b); SR 11-7 Section IV"
+    keywords: [data quality, exclusions, missing values, outliers, imputation, cleansing, waterfall]
+    evidence_expected: "Exclusion waterfall and data treatments."
+  - id: GEN-DOC-06
+    topic: Samples and target definition
+    requirement: "Development, validation and out-of-time samples are defined (periods, sizes, event counts), and the target/outcome variable is defined precisely."
+    source: "CRR Art. 175(4)(b); SR 11-7 Section IV"
+    keywords: [development sample, validation sample, out-of-time, holdout, target definition, outcome, observation window, performance window]
+    evidence_expected: "Sample definitions and target definition."
+  - id: GEN-DOC-07
+    topic: Methodology and alternatives
+    requirement: "The methodology (model form, estimation technique, variable/feature selection) is described and the alternatives considered with reasons for rejection are documented."
+    source: "CRR Art. 175(4)(a); SR 11-7 Sections IV-V (conceptual soundness)"
+    keywords: [methodology, model form, estimation, feature selection, variable selection, alternatives considered, challenger]
+    evidence_expected: "Methodology section with alternatives."
+  - id: GEN-DOC-08
+    topic: Assumptions
+    requirement: "Key assumptions (statistical, economic, business) are listed with their justification and the evidence that they hold."
+    source: "SR 11-7 Section IV; CRR Art. 175(4)(a)"
+    keywords: [assumptions, key assumptions, justification, assumption testing]
+    evidence_expected: "Assumption list with tests."
+  - id: GEN-DOC-09
+    topic: Expert judgement
+    requirement: "All expert judgements in design, data and calibration are listed with rationale, responsible persons and impact."
+    source: "EBA/GL/2017/16 (human judgement); SR 11-7 Section IV"
+    keywords: [expert judgement, expert judgment, judgemental, human judgement, rationale, impact]
+    evidence_expected: "Judgement register."
+  - id: GEN-DOC-10
+    topic: Limitations and compensating controls
+    requirement: "Model limitations, conditions under which the model does not perform, and compensating controls or overlays are documented."
+    source: "CRR Art. 175(4)(c); SR 11-7 Section IV"
+    keywords: [limitations, weaknesses, does not perform, compensating controls, overlay, conditions]
+    evidence_expected: "Limitations section with mitigants."
+  - id: GEN-DOC-11
+    topic: Performance results
+    requirement: "Performance results on development, validation and out-of-time samples (discrimination, calibration/accuracy, stability) are reported with the metrics used."
+    source: "CRR Art. 174(a) and 175(4)(b); SR 11-7 Section V"
+    keywords: [performance, discrimination, calibration, accuracy, stability, AUC, Gini, RMSE, results]
+    evidence_expected: "Performance tables per sample."
+  - id: GEN-DOC-12
+    topic: Sensitivity and benchmarking
+    requirement: "Sensitivity of outputs to key inputs and assumptions is analysed, and results are compared with benchmark or challenger models."
+    source: "SR 11-7 Sections IV-V"
+    keywords: [sensitivity analysis, sensitivity, benchmark, challenger model, stress test, scenario analysis]
+    evidence_expected: "Sensitivity and benchmark results."
+  - id: GEN-DOC-13
+    topic: Implementation and testing
+    requirement: "Implementation (systems, code, parameters) is described and tested, including reconciliation of production outputs with the development code."
+    source: "SR 11-7 Section IV (implementation); ECB Guide to internal models (General topics)"
+    keywords: [implementation, production, code, reconciliation, user acceptance testing, UAT, deployment, parallel run]
+    evidence_expected: "Implementation test results and reconciliation."
+  - id: GEN-DOC-14
+    topic: Reproducibility
+    requirement: "Code, data snapshots, software versions and random seeds needed to reproduce the development results are identified and stored."
+    source: "SR 11-7 Section VI (documentation); EU AI Act Annex IV point 2"
+    keywords: [reproducibility, reproduce, code repository, version control, random seed, software versions, data snapshot]
+    evidence_expected: "Pointer to code/data versions and reproduction instructions."
+  - id: GEN-DOC-15
+    topic: Monitoring plan
+    requirement: "An ongoing monitoring plan defines metrics, frequency, data, responsible parties and the escalation process when metrics deteriorate."
+    source: "SR 11-7 Section V (ongoing monitoring); CRR Art. 174(d); EU AI Act Art. 72"
+    keywords: [monitoring plan, ongoing monitoring, metrics, frequency, escalation, triggers, monitoring report]
+    evidence_expected: "Monitoring plan section."
+  - id: GEN-DOC-16
+    topic: Change log and versioning
+    requirement: "A change log records model versions, dates, changes, their classification and approvals."
+    source: "CRR Art. 175(2); ECB Guide to internal models (management of changes)"
+    keywords: [change log, version history, version, changes, release notes, change classification]
+    evidence_expected: "Version table."
+  - id: GEN-DOC-17
+    topic: Validation findings
+    requirement: "Prior validation findings, their severity and remediation status are referenced."
+    source: "ECB Guide to internal models (internal validation); SR 11-7 Section V"
+    keywords: [validation findings, findings, recommendations, remediation, severity, open issues]
+    evidence_expected: "Findings table with status."
+  - id: GEN-DOC-18
+    topic: Dependencies and third parties
+    requirement: "Upstream and downstream model dependencies and third-party components (vendor models, libraries, data providers) are listed."
+    source: "SR 11-7 Section V (vendor models); ECB Guide to internal models (third-party involvement)"
+    keywords: [dependencies, upstream, downstream, vendor, third-party, library, data provider]
+    evidence_expected: "Dependency list."

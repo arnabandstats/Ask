@@ -9,6 +9,8 @@ from ask.sources.loaders import LoadError, Source, load_path
 class SourceRegistry:
     def __init__(self) -> None:
         self.sources: dict[str, Source] = {}
+        self.models: dict = {}                     # name -> validation.models.LoadedModel
+        self.table_specs: dict[str, dict] = {}     # UC table source name -> load_table arguments
 
     # ── add / remove ──
     def load(self, path: Path, hint: str | None = None) -> list[Source]:
@@ -32,7 +34,21 @@ class SourceRegistry:
             i += 1
         return f"{name} ({i})"
 
+    def add(self, src: Source) -> Source:
+        """Register an already-built source (e.g. a Unity Catalog table), replacing one with
+        the same path."""
+        for existing in list(self.sources.values()):
+            if existing.path == src.path:
+                del self.sources[existing.name]
+        src.name = self._unique_name(src.name)
+        self.sources[src.name] = src
+        return src
+
     def remove(self, name: str) -> bool:
+        if name in self.models:
+            del self.models[name]
+            return True
+        self.table_specs.pop(name, None)
         return self.sources.pop(name, None) is not None
 
     def restore(self, records: list[dict]) -> list[str]:
@@ -40,6 +56,14 @@ class SourceRegistry:
         errors = []
         for rec in records:
             try:
+                if rec.get("kind") == "model":
+                    from ask.validation.models import load_model
+                    self.models[rec["name"]] = load_model(rec["path"], rec["name"])
+                    continue
+                if rec.get("table"):
+                    from ask.sources.tables import load_table
+                    self.add_table(rec["name"], load_table(**rec["table"]), rec["table"])
+                    continue
                 srcs = load_path(Path(rec["path"]), rec.get("kind"))
                 for s in srcs:
                     if len(srcs) == 1:
@@ -52,8 +76,22 @@ class SourceRegistry:
                 errors.append(f"{rec.get('name', rec.get('path'))}: {type(exc).__name__}: {exc}")
         return errors
 
+    def add_table(self, name: str, loaded, spec: dict) -> Source:
+        """A Unity Catalog table (ask.sources.tables.TableLoad) as a data source."""
+        src = self.add(Source(name=name, kind="data", path=f"uc://{loaded.table}", df=loaded.df,
+                              sheets={name: loaded.df}))
+        self.table_specs[src.name] = dict(spec)
+        return src
+
     def records(self) -> list[dict]:
-        return [s.record() for s in self.sources.values()]
+        out = []
+        for s in self.sources.values():
+            rec = s.record()
+            if s.name in self.table_specs:
+                rec["table"] = self.table_specs[s.name]
+            out.append(rec)
+        out += [{"name": m.name, "kind": "model", "path": m.location} for m in self.models.values()]
+        return out
 
     # ── lookup ──
     def of_kind(self, *kinds: str) -> list[Source]:
@@ -133,9 +171,9 @@ class SourceRegistry:
         raise KeyError(f"'{rel}' not found in {src.name}")
 
     def describe(self) -> str:
-        if not self.sources:
+        if not self.sources and not self.models:
             return "Nothing is loaded yet."
-        lines = []
+        lines = [f"- [model] {m.describe()}" for m in self.models.values()]
         for s in self.sources.values():
             if s.kind == "data":
                 cols = ", ".join(map(str, list(s.df.columns)[:40])) if s.df is not None else ""

@@ -176,8 +176,10 @@ def _import_main_pipeline():
             def generate_noisy_image(img_array):
                 """Gaussian-noise-perturbed copy of an image. Used by the
                 Computer Vision "Validation & Robustness" test."""
-                noise = np.random.normal(0, 25, img_array.shape).astype(np.uint8)
-                return cv2.add(img_array, noise)
+                # Seeded, and signed: casting N(0, 25) straight to uint8 wrapped every
+                # negative draw to ~230-255, so the "noise" was a brightening artefact.
+                noise = np.random.default_rng(42).normal(0, 25, img_array.shape)
+                return np.clip(img_array.astype(np.int16) + noise, 0, 255).astype(np.uint8)
 
             @staticmethod
             def get_variable_summary(df):
@@ -344,16 +346,21 @@ def _import_main_pipeline():
 
             @classmethod
             def compute_robustness(cls, X, y_true, model_type):
-                """Baseline vs. Gaussian-noise-perturbed model score. Used
-                by the "Robustness & Sensitivity" test."""
+                """Baseline vs. Gaussian-noise-perturbed SURROGATE score on a
+                held-out 30% (the surrogate is fitted on the other 70%). Used
+                by the "Robustness & Sensitivity" test. Seeded, so a rerun
+                gives the same numbers; scoring the rows the surrogate was
+                fitted on would measure memorisation, not robustness."""
+                from sklearn.model_selection import train_test_split
                 X_clean = X.fillna(0)
-                noise = np.random.normal(0, 0.05, X_clean.shape)
-                X_noisy = X_clean + noise * X_clean.std().values
+                X_tr, X_te, y_tr, y_te = train_test_split(X_clean, y_true, test_size=0.3, random_state=42)
+                noise = np.random.default_rng(42).normal(0, 0.05, X_te.shape)
+                X_noisy = X_te + noise * X_clean.std().values
 
                 model = cls.get_surrogate_model(model_type)
-                model.fit(X_clean, y_true)
-                baseline_score = model.score(X_clean, y_true)
-                noisy_score = model.score(X_noisy, y_true)
+                model.fit(X_tr, y_tr)
+                baseline_score = model.score(X_te, y_te)
+                noisy_score = model.score(X_noisy, y_te)
                 return baseline_score, noisy_score
 
             @staticmethod
@@ -671,7 +678,7 @@ def _import_main_pipeline():
 
                     if self._test_enabled("Validation & Sampling"):
                         mean_sc, std_sc = stx.compute_cross_validation(X, y_true, self.CONFIG["MODEL_TYPE"])
-                        metrics_log.append({"Test": "5-Fold CV Average Score", "Mean": mean_sc, "StdDev": std_sc})
+                        metrics_log.append({"Test": "5-Fold CV Average Score (SURROGATE RandomForest, not the model under validation)", "Mean": mean_sc, "StdDev": std_sc})
 
                     if self._test_enabled("Bias–Variance Analysis"):
                         t_size, t_mean, test_mean = stx.compute_learning_curve(X, y_true, self.CONFIG["MODEL_TYPE"])
@@ -687,7 +694,7 @@ def _import_main_pipeline():
                         try:
                             imp, shap_matrix, shap_basis = stx.compute_explainability(X, y_true, self.CONFIG["MODEL_TYPE"], self.CONFIG["PARAMS"]["surrogate_depth"])
                             self.save_dataframe(writer, imp, "PlotData_FeatureImportance")
-                            fig_imp = px.bar(imp, x="Importance", y="Feature", orientation='h', title="Feature Importances")
+                            fig_imp = px.bar(imp, x="Importance", y="Feature", orientation='h', title="Feature Importances (SURROGATE RandomForest, not the model under validation)")
                             self.export_plotly_to_html(fig_imp)
 
                             # max_display matches the 15 rows kept in `imp`, so
@@ -723,9 +730,9 @@ def _import_main_pipeline():
 
                     if self._test_enabled("Robustness & Sensitivity"):
                         base_sc, noise_sc = stx.compute_robustness(X, y_true, self.CONFIG["MODEL_TYPE"])
-                        metrics_log.append({"Test": "Robustness Baseline Score", "Value": base_sc})
-                        metrics_log.append({"Test": "Robustness Noisy Score", "Value": noise_sc})
-                        metrics_log.append({"Test": "Performance Degradation", "Value": base_sc - noise_sc})
+                        metrics_log.append({"Test": "Robustness Baseline Score (SURROGATE, hold-out)", "Value": base_sc})
+                        metrics_log.append({"Test": "Robustness Noisy Score (SURROGATE, hold-out)", "Value": noise_sc})
+                        metrics_log.append({"Test": "Performance Degradation (SURROGATE, hold-out)", "Value": base_sc - noise_sc})
 
                 if "Clustering" in self.CONFIG["MODEL_TYPE"]:
                     print("-> Running Clustering Metrics...")

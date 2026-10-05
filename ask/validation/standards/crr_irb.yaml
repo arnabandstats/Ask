@@ -1,0 +1,483 @@
+id: crr_irb
+title: CRR IRB requirements (Part Three, Title II, Chapter 3)
+version_note: >-
+  Based on Regulation (EU) No 575/2013 (CRR) as amended, including by Regulation (EU) 2024/1623 (CRR3),
+  Part Three, Title II, Chapter 3 (IRB Approach), in particular Section 6 (Requirements for the IRB Approach).
+  Paraphrased, not quoted; points within articles are cited only where certain. Review against the current
+  consolidated text (EUR-Lex) before relying on it. Input floors and data-length rules were changed by CRR3.
+applies_to: [pd, lgd, ead]
+requirements:
+  # ── Art. 144: conditions for permission ──────────────────────────────────
+  - id: CRR-144-01
+    topic: Meaningful risk differentiation
+    requirement: "The documentation shows that the rating system provides a meaningful assessment of obligor and transaction characteristics, a meaningful differentiation of risk and accurate and consistent quantitative estimates of risk."
+    source: "CRR Art. 144(1)"
+    keywords: [risk differentiation, discriminatory power, rating system, accurate, consistent, quantitative estimates]
+    patterns: ['meaningful\s+(differentiation|assessment)']
+    evidence_expected: "Statement and evidence (discriminatory power, grade heterogeneity/homogeneity) that grades differentiate risk and estimates are accurate."
+  - id: CRR-144-02
+    topic: Use test
+    requirement: "The internal ratings and default and loss estimates play an essential role in risk management, decision-making, credit approval, internal capital allocation and corporate governance, and the documentation describes these uses."
+    source: "CRR Art. 144(1); see also Art. 179 and the EBA RTS on IRB assessment methodology"
+    keywords: [use test, credit approval, pricing, capital allocation, risk appetite, limit setting, decision-making, corporate governance]
+    evidence_expected: "Description of the business uses of ratings and estimates (approval, pricing, limits, provisioning, reporting) and any differences between regulatory and internal use."
+  - id: CRR-144-03
+    topic: Rationale for design
+    requirement: "The institution documents its rating systems and the rationale for their design."
+    source: "CRR Art. 144(1); Art. 175"
+    keywords: [rationale, design choice, model design, methodology, alternative approaches, justification]
+    evidence_expected: "A design-rationale section explaining why the chosen structure, segmentation and method were selected over alternatives."
+  # ── Art. 169-170: structure of rating systems ────────────────────────────
+  - id: CRR-169-01
+    topic: Rating system structure
+    requirement: "The documentation defines the structure of the rating system, including whether risk is assessed on a grade scale or as direct estimates on a continuous scale, and the risk parameters each component produces."
+    source: "CRR Art. 169"
+    keywords: [rating scale, master scale, grades, pools, continuous scale, direct estimates, rating system structure]
+    evidence_expected: "Description of the rating/master scale, grade boundaries and how scores map to grades or pools."
+  - id: CRR-170-01
+    topic: Number of obligor grades
+    requirement: "For exposures to corporates, institutions and central governments and central banks, the obligor rating scale has at least seven grades for non-defaulted obligors and one for defaulted obligors."
+    source: "CRR Art. 170(1)"
+    model_types: [pd]
+    keywords: [seven grades, obligor grades, non-defaulted, defaulted grade, rating scale, number of grades]
+    patterns: ['\b(7|seven)\s+(non-default\w*\s+)?(obligor\s+)?grades', 'at\s+least\s+(7|seven)']
+    evidence_expected: "Count of non-defaulted grades and the default grade on the master scale (non-retail)."
+  - id: CRR-170-02
+    topic: Concentration across grades
+    requirement: "The distribution of exposures across grades is analysed and the documentation shows that there are no excessive concentrations in single grades or pools, or justifies them with empirical evidence of homogeneity."
+    source: "CRR Art. 170"
+    keywords: [concentration, distribution across grades, grade distribution, homogeneity, heterogeneity, herfindahl]
+    evidence_expected: "Grade/pool distribution table and concentration analysis (e.g. Herfindahl index) with justification of concentrated grades."
+  - id: CRR-170-03
+    topic: Retail pooling criteria
+    requirement: "For retail exposures, the assignment to grades or pools reflects obligor and transaction risk characteristics, including delinquency, and the pools are sufficiently differentiated and homogeneous."
+    source: "CRR Art. 170(3)"
+    model_types: [pd, lgd, ead]
+    keywords: [retail, pool, pooling, delinquency, homogeneous, risk characteristics, transaction characteristics]
+    evidence_expected: "Pooling criteria for retail including delinquency status; tests of pool homogeneity and differentiation."
+  # ── Art. 171-173: assignment to grades ───────────────────────────────────
+  - id: CRR-171-01
+    topic: Grade definitions and criteria
+    requirement: "Grades and pools have specific definitions, processes and criteria that are plausible, intuitive and allow third parties (internal audit, supervisors) to replicate the assignment."
+    source: "CRR Art. 171(1)"
+    keywords: [rating criteria, grade definitions, assignment process, replicate, plausible, intuitive, consistent assignment]
+    evidence_expected: "Written grade definitions/assignment rules detailed enough to be replicated by an independent party."
+  - id: CRR-171-02
+    topic: Use of all relevant information
+    requirement: "Assignment to grades takes into account all relevant information, and the less information available, the more conservative the assignment."
+    source: "CRR Art. 171(2)"
+    keywords: [all relevant information, more conservative, missing information, information available, conservative assignment]
+    evidence_expected: "Treatment of missing or outdated information in assignment and the conservatism it triggers."
+  - id: CRR-171-03
+    topic: External ratings as input
+    requirement: "Where external ratings are used as a primary factor in internal assignment, the documentation shows that other relevant information is also considered."
+    source: "CRR Art. 171(2)"
+    model_types: [pd]
+    keywords: [external rating, rating agency, ECAI, mapping to external, primary factor]
+    evidence_expected: "Role of external ratings in assignment and how other information is combined."
+  - id: CRR-173-02
+    topic: Annual review of assignments
+    requirement: "Obligor ratings and facility assignments are reviewed at least annually, with more frequent review for higher-risk obligors and problem exposures."
+    source: "CRR Art. 173(1)-(2)"
+    keywords: [annual review, review of ratings, rating review, at least annually, re-rating, rating update frequency]
+    patterns: ['at\s+least\s+(once\s+)?(a\s+year|annually|every\s+(12|twelve)\s+months)']
+    evidence_expected: "Rating review frequency policy and evidence on stale ratings."
+  - id: CRR-172-02
+    topic: Overrides
+    requirement: "Overrides of model outputs follow written policies, are documented with their rationale and the responsible staff, and their frequency and performance are monitored."
+    source: "CRR Art. 172(3)"
+    keywords: [override, overrides, override rate, manual adjustment, expert adjustment, override monitoring, rating exception]
+    evidence_expected: "Override policy, override rates by direction and grade, and performance of overridden ratings."
+  - id: CRR-173-01
+    topic: Integrity of assignment
+    requirement: "Assignment and periodic review of ratings are completed or approved by a party that does not directly benefit from decisions to extend credit."
+    source: "CRR Art. 173(1)"
+    keywords: [independent, independence, rating assignment, approval of ratings, does not benefit, segregation of duties]
+    evidence_expected: "Description of who assigns and approves ratings and their independence from origination."
+  # ── Art. 174: use of models ──────────────────────────────────────────────
+  - id: CRR-174-01
+    topic: Predictive power and absence of bias
+    requirement: "The model has good predictive power, its input variables form a reasonable and effective basis for the resulting predictions, and it has no material biases that would distort own funds requirements."
+    source: "CRR Art. 174(a)"
+    keywords: [predictive power, discriminatory power, bias, input variables, risk drivers, accuracy ratio, gini, auc]
+    evidence_expected: "Performance metrics (e.g. AUC/Gini) and analysis of material biases; rationale for input variables."
+  - id: CRR-174-02
+    topic: Vetting of data inputs
+    requirement: "There is a process for vetting data inputs into the model that includes an assessment of the accuracy, completeness and appropriateness of the data."
+    source: "CRR Art. 174(b)"
+    keywords: [data quality, accuracy, completeness, appropriateness, data checks, data validation, data inputs]
+    evidence_expected: "Data quality framework results for model inputs: accuracy, completeness and appropriateness checks."
+  - id: CRR-174-03
+    topic: Representativeness of model data
+    requirement: "The data used to build the model are representative of the population of the institution's actual obligors or exposures."
+    source: "CRR Art. 174(c)"
+    keywords: [representative, representativeness, population, development sample, application portfolio, current portfolio]
+    evidence_expected: "Comparison of development sample to the current portfolio (distributions, segments, time period)."
+  - id: CRR-174-04
+    topic: Regular validation cycle
+    requirement: "There is a regular cycle of model validation that includes monitoring of model performance and stability, review of the model specification, and testing of model outputs against outcomes."
+    source: "CRR Art. 174(d)"
+    keywords: [validation cycle, monitoring, performance, stability, model specification, outcomes, back-testing]
+    evidence_expected: "Description of the periodic validation/monitoring cycle covering performance, stability and outcome testing."
+  - id: CRR-174-05
+    topic: Human judgement and oversight
+    requirement: "The statistical model is complemented by human judgement and human oversight to review model-based assignments and ensure that models are used appropriately."
+    source: "CRR Art. 174(e)"
+    keywords: [human judgement, human judgment, human oversight, expert judgement, review of assignments, qualitative assessment]
+    evidence_expected: "How human judgement complements the model (qualitative modules, overrides, review) and its governance."
+  # ── Art. 175: documentation ──────────────────────────────────────────────
+  - id: CRR-175-01
+    topic: Documentation of design and operational details
+    requirement: "The documentation covers the design and operational details of the rating system, including portfolio differentiation, rating criteria, responsibilities of the parties rating obligors and exposures, the definition of a rating exception, the frequency of rating reviews and management oversight."
+    source: "CRR Art. 175(1)"
+    keywords: [portfolio differentiation, rating criteria, responsibilities, rating exception, frequency of rating review, management oversight, operational details]
+    evidence_expected: "Sections on scope/portfolio, criteria, roles, exceptions, review frequency and oversight."
+  - id: CRR-175-02
+    topic: Rationale for rating criteria
+    requirement: "The documentation records the rationale for, and the analysis supporting, the choice of rating criteria."
+    source: "CRR Art. 175(2)"
+    keywords: [rating criteria, rationale, risk driver selection, variable selection, univariate analysis, multivariate analysis, choice of criteria]
+    evidence_expected: "Variable/risk driver selection analysis with rationale for each selected criterion."
+  - id: CRR-175-03
+    topic: Major changes documented
+    requirement: "All major changes in the risk rating process are documented, and changes made since the last review by the competent authority are identifiable."
+    source: "CRR Art. 175(2)"
+    keywords: [change log, version history, major changes, model change, changes since, material change]
+    evidence_expected: "Version/change history with dates, description and classification of changes."
+  - id: CRR-175-04
+    topic: Organisation and internal control
+    requirement: "The organisation of rating assignment, including the internal control structure, is documented."
+    source: "CRR Art. 175(3)"
+    keywords: [internal control, control structure, organisation, rating assignment, roles and responsibilities, three lines]
+    evidence_expected: "Organisation chart / process description of rating assignment and its controls."
+  - id: CRR-175-05
+    topic: Model theory, assumptions and data sources
+    requirement: "For statistical models, the documentation gives a detailed outline of the theory, assumptions and mathematical and empirical basis for the assignment of estimates to grades, obligors, exposures or pools, and the data sources used to estimate the model."
+    source: "CRR Art. 175(4)(a)"
+    keywords: [theory, assumptions, mathematical, empirical basis, data sources, methodology, estimation]
+    evidence_expected: "Methodology section with model equations, assumptions and data source description."
+  - id: CRR-175-06
+    topic: Out-of-time and out-of-sample validation
+    requirement: "The documentation establishes a rigorous statistical process for validating the model, including out-of-time and out-of-sample performance tests."
+    source: "CRR Art. 175(4)(b)"
+    keywords: [out-of-time, out-of-sample, holdout, validation sample, test sample, performance tests]
+    patterns: ['\bOOT\b', '\bOOS\b']
+    evidence_expected: "OOT and OOS samples, their definitions and the resulting performance metrics."
+  - id: CRR-175-07
+    topic: Circumstances where the model does not work
+    requirement: "The documentation indicates any circumstances under which the model does not work effectively."
+    source: "CRR Art. 175(4)(c)"
+    keywords: [limitations, does not work, not work effectively, weaknesses, out of scope, known limitations]
+    evidence_expected: "Explicit model-limitations section listing segments/conditions where the model is unreliable."
+  - id: CRR-175-08
+    topic: Third-party (vendor) models
+    requirement: "Use of a model obtained from a third-party vendor that claims proprietary technology does not exempt the institution from the documentation requirements; the institution demonstrates its understanding of the vendor model."
+    source: "CRR Art. 175(5)"
+    keywords: [vendor, third-party, third party, proprietary, external model, vendor model]
+    evidence_expected: "Vendor model documentation, the institution's understanding and validation of it."
+  # ── Art. 176-177: data and stress tests ──────────────────────────────────
+  - id: CRR-176-01
+    topic: Data maintenance
+    requirement: "The institution collects and stores data on rating assignments and histories, estimated PDs, default dates and circumstances, and (where own estimates are used) realised LGDs and conversion factors, sufficient to support the rating system and its validation."
+    source: "CRR Art. 176"
+    keywords: [data maintenance, rating history, default dates, data storage, historical data, data retention, realised LGD]
+    evidence_expected: "Description of the data repository: rating histories, default events, recoveries, and retention."
+  - id: CRR-177-01
+    topic: Stress testing
+    requirement: "Sound stress testing processes are in place for use in the assessment of capital adequacy, including credit-risk stress tests assessing the effect of economic conditions on IRB exposures and capital requirements."
+    source: "CRR Art. 177"
+    keywords: [stress test, stress testing, scenario, recession, capital adequacy, migration under stress]
+    evidence_expected: "Use of the model in stress testing and the stress scenarios considered."
+  # ── Art. 178: definition of default ──────────────────────────────────────
+  - id: CRR-178-01
+    topic: Definition of default — unlikeliness to pay
+    requirement: "A default is considered to have occurred when the obligor is considered unlikely to pay its credit obligations in full without recourse to actions such as realising security."
+    source: "CRR Art. 178(1)(a); Art. 178(3)"
+    keywords: [unlikely to pay, unlikeliness to pay, UTP, realising security, realisation of collateral, definition of default]
+    evidence_expected: "UTP criteria and indications used in the default definition."
+  - id: CRR-178-02
+    topic: Definition of default — 90 days past due
+    requirement: "A default is considered to have occurred when the obligor is more than 90 days past due on any material credit obligation (the competent authority may allow 180 days for certain exposures as set out in Art. 178)."
+    source: "CRR Art. 178(1)(b)"
+    keywords: [90 days past due, days past due, dpd, past due, material credit obligation]
+    patterns: ['\b90\s*(\+\s*)?(days?|dpd)\b']
+    evidence_expected: "The days-past-due criterion and how the counter is computed."
+  - id: CRR-178-03
+    topic: Materiality threshold
+    requirement: "The materiality threshold for past-due credit obligations (absolute and relative components) is the one set by the competent authority under Art. 178(2)(d) and Delegated Regulation (EU) 2018/171."
+    source: "CRR Art. 178(2)(d); Commission Delegated Regulation (EU) 2018/171"
+    keywords: [materiality threshold, absolute threshold, relative threshold, EUR 100, EUR 500, 1%, 2018/171]
+    evidence_expected: "Absolute and relative thresholds applied, by retail/non-retail."
+  - id: CRR-178-04
+    topic: Default definition consistency
+    requirement: "The default definition applied in the data used for estimation is the same as the one used in the rating system, or the data are adjusted to achieve consistency."
+    source: "CRR Art. 178; Art. 179"
+    keywords: [consistent definition, default definition, adjustment, new definition of default, historical data adjustment, DoD]
+    evidence_expected: "Evidence that development/calibration data use the current default definition, or the adjustment made."
+  - id: CRR-178-05
+    topic: Return to non-default
+    requirement: "The criteria for an obligor or facility to return to non-defaulted status are defined and monitored."
+    source: "CRR Art. 178(5); EBA/GL/2016/07"
+    keywords: [cure, cured, return to non-defaulted, probation period, exit from default, re-default]
+    evidence_expected: "Cure/probation criteria and monitoring of re-defaults."
+  # ── Art. 179: overall estimation requirements ────────────────────────────
+  - id: CRR-179-01
+    topic: Use of all relevant data
+    requirement: "The institution's own estimates of risk parameters incorporate all relevant data, information and methods."
+    source: "CRR Art. 179(1)"
+    keywords: [all relevant data, information and methods, data used, estimation data, relevant information]
+    evidence_expected: "Justification of the data scope used for estimation and of any exclusions."
+  - id: CRR-179-02
+    topic: Empirical basis
+    requirement: "Estimates are derived using both historical experience and empirical evidence and are not based purely on judgemental considerations."
+    source: "CRR Art. 179(1)"
+    keywords: [historical experience, empirical evidence, judgemental, judgmental, expert judgement, empirical]
+    evidence_expected: "Empirical basis of each estimate; where judgement is used, its scope and justification."
+  - id: CRR-179-03
+    topic: Comparability of data
+    requirement: "The population of exposures, lending standards and other relevant characteristics represented in the estimation data are comparable with those of the institution's exposures and standards."
+    source: "CRR Art. 179(1)"
+    keywords: [comparable, comparability, lending standards, population, representativeness, underwriting standards]
+    evidence_expected: "Comparability/representativeness analysis of estimation data vs current portfolio and lending standards."
+  - id: CRR-179-04
+    topic: Sufficient data
+    requirement: "The number of exposures in the sample and the data period used for quantification are sufficient to give confidence in the accuracy and robustness of the estimates."
+    source: "CRR Art. 179(1)"
+    keywords: [number of exposures, sample size, data period, observation period, robustness, sufficient data, low default]
+    evidence_expected: "Sample sizes, number of defaults and observation period used for estimation."
+  - id: CRR-179-05
+    topic: Margin of conservatism
+    requirement: "Estimates include a margin of conservatism related to the expected range of estimation errors; the less satisfactory the methods and data, the larger the margin."
+    source: "CRR Art. 179(1); EBA/GL/2017/16 chapter on margin of conservatism"
+    keywords: [margin of conservatism, MoC, estimation error, conservatism, add-on]
+    evidence_expected: "MoC quantification by category and its application to the final parameter."
+  - id: CRR-179-06
+    topic: Review of estimates
+    requirement: "Estimates are reviewed at least annually and revised when new information comes to light."
+    source: "CRR Art. 179(1)"
+    keywords: [review of estimates, annual review, recalibration, at least annually, new information]
+    patterns: ['at\s+least\s+(once\s+)?(a\s+year|annually)']
+    evidence_expected: "Policy and evidence of annual review of estimates and recalibration triggers."
+  - id: CRR-179-07
+    topic: Pooled / external data
+    requirement: "Where external or pooled data are used, the institution demonstrates that the rating systems and criteria of the other participants are comparable and the data are representative."
+    source: "CRR Art. 179(2)"
+    keywords: [pooled data, external data, data pool, consortium, comparable rating systems, representative]
+    evidence_expected: "Analysis of comparability and representativeness of external/pooled data."
+  # ── Art. 180: PD ─────────────────────────────────────────────────────────
+  - id: CRR-180-01
+    topic: PD as long-run average
+    requirement: "PD estimates for obligor grades or pools are based on the long-run average of one-year default rates."
+    source: "CRR Art. 180(1)(a); Art. 180(2)(a)"
+    model_types: [pd]
+    keywords: [long-run average, long run average, one-year default rate, LRA, default rate, calibration]
+    patterns: ['long[\s-]+run\s+average']
+    evidence_expected: "LRA default rate computation and calibration to it."
+  - id: CRR-180-02
+    topic: PD estimation methods
+    requirement: "PD estimation uses information and techniques that take appropriate account of long-run experience (internal default experience, mapping to external data, or statistical default models) and the documentation justifies the method."
+    source: "CRR Art. 180(1)"
+    model_types: [pd]
+    keywords: [internal default experience, mapping, external data, statistical default model, long-run experience, PD estimation]
+    evidence_expected: "Method for PD quantification and its justification."
+  - id: CRR-180-03
+    topic: Length of PD observation period
+    requirement: "For non-retail exposures the historical observation period used for PD estimation is at least five years for at least one data source, and for retail exposures at least five years, with longer periods used where more relevant."
+    source: "CRR Art. 180(1); Art. 180(2)"
+    model_types: [pd]
+    keywords: [five years, 5 years, observation period, historical observation period, data source, length of time series]
+    patterns: ['\b(5|five)\s+years?\b']
+    evidence_expected: "Start/end dates of the historical observation period per data source."
+  - id: CRR-180-04
+    topic: Representative mix of good and bad years
+    requirement: "The long-run average default rate reflects a likely range of variability of default rates, including a representative mix of good and bad years."
+    source: "CRR Art. 180; EBA/GL/2017/16 PD calibration chapter"
+    model_types: [pd]
+    keywords: [good and bad years, economic cycle, likely range of variability, representative mix, economic downturn, cycle]
+    evidence_expected: "Assessment of whether the observation period covers good and bad years and any LRA adjustment."
+  - id: CRR-180-05
+    topic: Seasoning (retail)
+    requirement: "For retail exposures, seasoning effects are taken into account where material when estimating PDs."
+    source: "CRR Art. 180(2)"
+    model_types: [pd]
+    keywords: [seasoning, months on book, vintage, maturity effect, time on book]
+    evidence_expected: "Seasoning analysis and treatment."
+  - id: CRR-160-01
+    topic: PD input floor
+    requirement: "Final PDs used for own funds requirements respect the regulatory PD input floors applicable under the current CRR (Art. 160 for non-retail and Art. 163 for retail, as amended by Regulation (EU) 2024/1623)."
+    source: "CRR Art. 160; Art. 163"
+    model_types: [pd]
+    keywords: [PD floor, input floor, floor, minimum PD, 0.05%, 0.03%, 0.1%]
+    patterns: ['\bfloor\w*\b.*\b0[.,]\d+\s*%']
+    evidence_expected: "Floor value applied by exposure class and where it is implemented."
+  # ── Art. 181: LGD ────────────────────────────────────────────────────────
+  - id: CRR-181-01
+    topic: LGD from realised LGDs
+    requirement: "LGD estimates are based on realised LGDs by facility grade or pool, using all defaults observed in the data sources (a long-run default-weighted average)."
+    source: "CRR Art. 181(1)(a)"
+    model_types: [lgd]
+    keywords: [realised LGD, realized LGD, long-run average LGD, default-weighted, all defaults, facility grade]
+    patterns: ['default[\s-]+weighted']
+    evidence_expected: "Realised LGD computation and the LRA LGD weighting (default-weighted)."
+  - id: CRR-181-02
+    topic: Downturn LGD
+    requirement: "LGD estimates are appropriate for an economic downturn where those are more conservative than the long-run average."
+    source: "CRR Art. 181(1)(b); Commission Delegated Regulation (EU) 2021/930; EBA/GL/2019/03"
+    model_types: [lgd]
+    keywords: [downturn LGD, economic downturn, downturn period, downturn adjustment, downturn]
+    evidence_expected: "Identification of the downturn period and the downturn LGD estimate."
+  - id: CRR-181-03
+    topic: Obligor-collateral dependency
+    requirement: "The extent of any dependence between the risk of the obligor and that of the collateral or collateral provider is taken into account."
+    source: "CRR Art. 181(1)"
+    model_types: [lgd]
+    keywords: [dependence, wrong-way, collateral provider, correlation, obligor and collateral]
+    evidence_expected: "Analysis of dependence between obligor default and collateral value."
+  - id: CRR-181-04
+    topic: Currency mismatch
+    requirement: "Currency mismatches between the underlying obligation and the collateral are treated conservatively in the LGD assessment."
+    source: "CRR Art. 181(1)"
+    model_types: [lgd]
+    keywords: [currency mismatch, foreign currency, FX, collateral currency]
+    evidence_expected: "Treatment of currency mismatch in LGD."
+  - id: CRR-181-05
+    topic: Collateral in LGD
+    requirement: "Where collateral is taken into account, the institution has internal requirements for collateral management, legal certainty and risk management, and estimates are not based solely on the collateral's estimated market value."
+    source: "CRR Art. 181(1)"
+    model_types: [lgd]
+    keywords: [collateral, haircut, market value, legal certainty, collateral management, valuation]
+    evidence_expected: "Collateral treatment, valuation and haircuts in the LGD model."
+  - id: CRR-181-06
+    topic: Discounting, costs and economic loss
+    requirement: "Realised LGD reflects economic loss, including material discount effects and material direct and indirect costs associated with collecting on the exposure."
+    source: "CRR Art. 4(1)(52) (definition of loss); Art. 181(1); EBA/GL/2017/16 LGD chapter"
+    model_types: [lgd]
+    keywords: [economic loss, discount, discount rate, direct costs, indirect costs, workout costs, recovery costs]
+    evidence_expected: "Discount rate, cost allocation method and recovery cash-flow treatment."
+  - id: CRR-181-07
+    topic: Defaulted exposures (ELBE / LGD in-default)
+    requirement: "For defaulted exposures, the institution uses its best estimate of expected loss (ELBE) and an LGD that reflects the possibility of additional unexpected losses during the recovery period."
+    source: "CRR Art. 181(1); EBA/GL/2017/16 chapter on defaulted exposures"
+    model_types: [lgd]
+    keywords: [ELBE, best estimate of expected loss, LGD in-default, defaulted exposures, recovery period, unexpected loss]
+    evidence_expected: "ELBE and LGD in-default methodology and reference dates."
+  - id: CRR-181-08
+    topic: LGD observation period
+    requirement: "The data used for own-LGD estimation cover the minimum historical observation period required by Art. 181 (five years for retail; longer for non-retail own-LGD estimates) and the documentation states the period used."
+    source: "CRR Art. 181"
+    model_types: [lgd]
+    keywords: [observation period, seven years, five years, 7 years, 5 years, historical data, data period]
+    patterns: ['\b(5|five|7|seven)\s+years?\b']
+    evidence_expected: "Observation period start/end and justification of its length."
+  # ── Art. 182: CCF ────────────────────────────────────────────────────────
+  - id: CRR-182-01
+    topic: CCF as default-weighted average
+    requirement: "Conversion factor estimates are based on the long-run default-weighted average realised conversion factors by facility grade or pool."
+    source: "CRR Art. 182(1)(a)"
+    model_types: [ead]
+    keywords: [realised CCF, realized CCF, conversion factor, default-weighted, long-run average, CCF]
+    patterns: ['default[\s-]+weighted']
+    evidence_expected: "Realised CCF computation and weighting."
+  - id: CRR-182-02
+    topic: Downturn CCF
+    requirement: "Conversion factor estimates are appropriate for an economic downturn where those are more conservative than the long-run average."
+    source: "CRR Art. 182(1)(b); Commission Delegated Regulation (EU) 2021/930"
+    model_types: [ead]
+    keywords: [downturn CCF, economic downturn, downturn, downturn conversion factor]
+    evidence_expected: "Downturn CCF analysis and estimate."
+  - id: CRR-182-03
+    topic: Additional drawings and limit policies
+    requirement: "CCF estimates reflect the possibility of additional drawings by the obligor up to and after default, and the institution's policies and strategies for account monitoring and limit management."
+    source: "CRR Art. 182(1)"
+    model_types: [ead]
+    keywords: [additional drawings, drawdown, undrawn, limit management, account monitoring, credit limit]
+    evidence_expected: "Treatment of additional drawings and limit-management effects in CCF."
+  - id: CRR-182-04
+    topic: CCF reference data
+    requirement: "CCF estimates are based on a historical observation period meeting the minimum length set in Art. 182 and the documentation states the period used."
+    source: "CRR Art. 182"
+    model_types: [ead]
+    keywords: [observation period, five years, seven years, historical data, data period]
+    evidence_expected: "Observation period used for CCF estimation."
+  # ── Art. 185: validation ─────────────────────────────────────────────────
+  - id: CRR-185-01
+    topic: Validation system
+    requirement: "Robust systems are in place to validate the accuracy and consistency of rating systems, processes and the estimation of all relevant risk parameters, enabling consistent and meaningful assessment of their performance."
+    source: "CRR Art. 185(a)"
+    keywords: [validation, accuracy, consistency, validation framework, performance assessment, internal validation]
+    evidence_expected: "Validation framework description and the tests applied."
+  - id: CRR-185-02
+    topic: Back-testing of PD
+    requirement: "Realised default rates are regularly compared with estimated PDs for each grade and, where realised default rates are outside the expected range, the reasons for the deviation are analysed."
+    source: "CRR Art. 185(b)"
+    model_types: [pd]
+    keywords: [realised default rate, observed default rate, back-testing, binomial test, expected range, calibration test, deviation]
+    evidence_expected: "Grade-level back-testing results (e.g. binomial/Jeffreys/Hosmer-Lemeshow tests) and analysis of deviations."
+  - id: CRR-185-03
+    topic: Back-testing of LGD and CCF
+    requirement: "Where own LGD and conversion factor estimates are used, the same analysis comparing realised values with estimates is performed."
+    source: "CRR Art. 185(b)"
+    model_types: [lgd, ead]
+    keywords: [realised LGD, realised CCF, back-testing, estimated LGD, comparison, predicted vs realised]
+    evidence_expected: "Back-testing of LGD/CCF estimates against realised values by grade/pool."
+  - id: CRR-185-04
+    topic: Other validation tools and external benchmarks
+    requirement: "Other quantitative validation tools and comparisons with relevant external data sources are used."
+    source: "CRR Art. 185(c)"
+    keywords: [benchmark, benchmarking, external data, external rating, comparison, challenger model]
+    evidence_expected: "Benchmarking against external data/ratings or challenger models."
+  - id: CRR-185-05
+    topic: Consistency of validation methods over time
+    requirement: "Validation methods and data are consistent through time, and changes in methods and data are documented."
+    source: "CRR Art. 185(d)"
+    keywords: [consistent through time, changes in methods, validation methodology, time series of results]
+    evidence_expected: "Statement of methodology consistency and documentation of any changes."
+  - id: CRR-185-06
+    topic: Account for economic cycle in validation
+    requirement: "Validation takes into account changes in economic conditions and the economic cycle; quantitative testing and other validation methods do not vary systematically with the cycle."
+    source: "CRR Art. 185(e)"
+    keywords: [economic cycle, economic conditions, cyclicality, point-in-time, through-the-cycle, rating philosophy]
+    evidence_expected: "Rating philosophy and how cyclicality is considered in validation results."
+  - id: CRR-185-07
+    topic: Internal standards for deviations
+    requirement: "Well-articulated internal standards exist for situations where deviations of realised values from expectations become significant enough to call the validity of the estimates into question, taking account of business cycles and similar systematic variability."
+    source: "CRR Art. 185(f)"
+    keywords: [internal standards, deviation, significant deviation, trigger, escalation, remedial action, threshold]
+    evidence_expected: "Defined triggers for deviations and the actions they require."
+  # ── Art. 189-191: governance ─────────────────────────────────────────────
+  - id: CRR-189-01
+    topic: Management body approval
+    requirement: "All material aspects of the rating and estimation processes are approved by the management body or a designated committee, and senior management has a good understanding of the rating system design and operation."
+    source: "CRR Art. 189"
+    keywords: [approval, management body, committee, senior management, model approval, sign-off]
+    evidence_expected: "Approval records and committee minutes for the model."
+  - id: CRR-189-02
+    topic: Management reporting
+    requirement: "Internal reporting on rating systems covers at least the risk profile by grade, migration across grades, estimates per grade and comparison of realised default rates (and LGDs/CCFs where own estimates are used) against expectations."
+    source: "CRR Art. 189(3)"
+    keywords: [reporting, risk profile by grade, migration, management information, realised against expected, reports]
+    evidence_expected: "Content of periodic reports to management on model performance."
+  - id: CRR-190-01
+    topic: Credit risk control unit
+    requirement: "An independent credit risk control unit, reporting to senior management, is responsible for the design or selection, implementation, oversight and performance of the rating systems."
+    source: "CRR Art. 190(1)"
+    keywords: [credit risk control unit, CRCU, independent, model owner, oversight, design or selection]
+    evidence_expected: "Identification of the CRCU and its responsibilities and independence."
+  - id: CRR-190-02
+    topic: Testing and monitoring of grades
+    requirement: "The credit risk control unit tests and monitors grades and pools, produces and analyses summary reports, verifies consistent application of grade definitions, and reviews and documents changes to the rating process."
+    source: "CRR Art. 190(2)"
+    keywords: [monitoring, testing, grade definitions, summary reports, changes to the rating process, consistent application]
+    evidence_expected: "Monitoring reports and procedures for consistent application of grades."
+  - id: CRR-190-03
+    topic: Independent validation function
+    requirement: "Model validation is performed by a function independent from model development, as required by the institution's validation framework."
+    source: "CRR Art. 185; Art. 190; ECB Guide to internal models, General topics (internal validation)"
+    keywords: [independent validation, validation function, independence, model development, separation]
+    evidence_expected: "Organisational independence of the validation function from development."
+  - id: CRR-191-01
+    topic: Internal audit
+    requirement: "Internal audit or another comparable independent unit reviews at least annually the institution's rating systems and their operations, including the operations of the credit function and the estimation of risk parameters."
+    source: "CRR Art. 191"
+    keywords: [internal audit, audit review, at least annually, audit function, independent review]
+    evidence_expected: "Internal audit coverage of the rating system and its most recent review."

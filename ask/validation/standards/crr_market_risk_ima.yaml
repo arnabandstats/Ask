@@ -1,0 +1,157 @@
+id: crr_market_risk_ima
+title: CRR market risk internal models (IMA Art. 362-377 and FRTB IMA Art. 325az-325bp)
+version_note: >-
+  Based on Regulation (EU) No 575/2013 (CRR) as amended: Part Three, Title IV, Chapter 5 (internal models approach,
+  Art. 362-377, the current own-funds regime) and Chapter 1b (alternative internal model approach / FRTB IMA,
+  Art. 325az-325bp, introduced by CRR2 and amended by CRR3; its own-funds application in the EU has been
+  postponed — check the regime applicable at the reference date). Basel Framework MAR30-MAR33 cited as the
+  international source of FRTB. Paraphrased; article points cited only where certain. Review against current texts.
+applies_to: [var]
+requirements:
+  # ── current IMA (Art. 362-377) ───────────────────────────────────────────
+  - id: IMA-365-01
+    topic: VaR calibration parameters
+    requirement: "Daily VaR uses a 99th percentile one-tailed confidence interval, a 10-day holding period (scaling from shorter periods only if justified), an effective historical observation period of at least one year, and data sets updated at least monthly."
+    source: "CRR Art. 365(1)"
+    keywords: [99th percentile, 99%, one-tailed, 10-day, ten-day, holding period, observation period, updated monthly]
+    patterns: ['\b99(\.0)?\s*(%|th)', '\b(10|ten)[\s-]+(business\s+)?days?\b']
+    evidence_expected: "VaR parameters (confidence, horizon, scaling, history length, update frequency)."
+  - id: IMA-365-02
+    topic: Stressed VaR
+    requirement: "Stressed VaR is calculated at least weekly using model inputs calibrated to a continuous 12-month period of significant financial stress relevant to the institution's portfolio, and the period selection is reviewed."
+    source: "CRR Art. 365(2)"
+    keywords: [stressed VaR, sVaR, stress period, 12-month, significant financial stress, weekly, stress window]
+    patterns: ['\b(12|twelve)[\s-]+months?\b']
+    evidence_expected: "Stress-period selection method, chosen window and review frequency."
+  - id: IMA-366-01
+    topic: Regulatory back-testing
+    requirement: "Back-testing compares the one-day VaR (99th percentile) with both actual and hypothetical changes in portfolio value over the most recent 250 business days, and counts overshootings for each."
+    source: "CRR Art. 366"
+    keywords: [back-testing, 250 business days, overshootings, actual changes, hypothetical changes, one-day VaR, exceptions]
+    patterns: ['\b250\s+(business\s+)?days?\b']
+    evidence_expected: "Back-testing series, overshooting counts on actual and hypothetical P&L."
+  - id: IMA-366-02
+    topic: Multiplication factor addend
+    requirement: "The multiplication factor (at least 3) is increased by the addend set in the Art. 366 table according to the number of overshootings over the most recent 250 business days."
+    source: "CRR Art. 366"
+    keywords: [multiplication factor, addend, plus factor, overshootings, traffic light, Basel zones]
+    evidence_expected: "Current overshooting count and resulting addend."
+  - id: IMA-366-03
+    topic: P&L definitions for back-testing
+    requirement: "The definitions of actual and hypothetical P&L used for back-testing are documented, with hypothetical P&L excluding fees, commissions and intraday trading, and differences between them analysed."
+    source: "CRR Art. 366; ECB Guide to internal models, Market risk (regulatory back-testing)"
+    keywords: [hypothetical P&L, actual P&L, fees, commissions, intraday, P&L definition, net interest income]
+    evidence_expected: "P&L definitions and reconciliation."
+  - id: IMA-366-04
+    topic: Overshooting notification and analysis
+    requirement: "Each overshooting is analysed for its cause and notified to the competent authority within the deadline set in Art. 366."
+    source: "CRR Art. 366"
+    keywords: [overshooting, notification, root cause, explanation, competent authority, five working days]
+    evidence_expected: "Overshooting log with explanations and notification dates."
+  - id: IMA-367-01
+    topic: Risk factor capture
+    requirement: "The model captures all material price risks of the positions in scope (interest rate, equity, FX, commodity and their volatilities as relevant), and proxies are shown to have a good track record."
+    source: "CRR Art. 367"
+    keywords: [risk factors, interest rate, equity, foreign exchange, commodity, volatility, proxies, basis risk]
+    evidence_expected: "Risk-factor coverage per asset class and proxy justification."
+  - id: IMA-367-02
+    topic: Correlation assumptions
+    requirement: "Empirical correlations within and across broad risk categories are used only where the institution's approach for measuring them is sound and implemented with integrity."
+    source: "CRR Art. 367"
+    keywords: [correlation, empirical correlations, diversification, across risk categories, aggregation]
+    evidence_expected: "Correlation/diversification approach and its validation."
+  - id: IMA-368-01
+    topic: Qualitative requirements
+    requirement: "The model is integrated into daily risk management, the risk control unit is independent from trading units, the management body is involved, and limits are related to the model."
+    source: "CRR Art. 368"
+    keywords: [daily risk management, risk control unit, independent, management body, limits, use test, risk reports]
+    evidence_expected: "Description of model use in daily risk management and governance."
+  - id: IMA-368-02
+    topic: Stress testing programme
+    requirement: "A rigorous and comprehensive stress testing programme, including reverse stress tests, complements the model, and its results are reviewed by senior management."
+    source: "CRR Art. 368"
+    keywords: [stress testing, reverse stress test, stress scenarios, senior management, stress programme]
+    evidence_expected: "Stress testing programme and its use."
+  - id: IMA-369-01
+    topic: Independent internal validation
+    requirement: "The model is validated by suitably qualified parties independent of the development process, when initially developed, when significant changes are made and periodically, including after structural market changes or portfolio changes."
+    source: "CRR Art. 369(1)"
+    keywords: [internal validation, independent, initial validation, significant changes, periodic validation, structural changes]
+    evidence_expected: "Validation history and independence of validators."
+  - id: IMA-369-02
+    topic: Validation content
+    requirement: "Validation includes tests that the model's assumptions are appropriate and do not underestimate risk, back-testing beyond the regulatory programme, and the use of hypothetical portfolios to test the capture of particular structural features."
+    source: "CRR Art. 369(1)"
+    keywords: [assumptions, hypothetical portfolios, back-testing, distribution assumptions, underestimate risk, pricing models]
+    evidence_expected: "Validation tests of assumptions, hypothetical portfolio tests and extended back-testing."
+  - id: IMA-372-01
+    topic: Incremental risk charge
+    requirement: "Where IRC applies, default and migration risks are modelled at a 99.9% confidence over a one-year horizon with liquidity horizons and the constant level of risk assumption documented."
+    source: "CRR Art. 372-376"
+    keywords: [IRC, incremental risk charge, 99.9%, one-year, liquidity horizon, constant level of risk, migration]
+    patterns: ['\b99[.,]9\s*%']
+    evidence_expected: "IRC methodology and parameters."
+  # ── FRTB IMA (Art. 325az-325bp) ──────────────────────────────────────────
+  - id: FRTB-325AZ-01
+    topic: Desk-level permission
+    requirement: "Trading desks in scope of the alternative internal model approach are defined, and each desk meets the back-testing and P&L attribution requirements to remain eligible."
+    source: "CRR Art. 325az; Basel Framework MAR30"
+    keywords: [trading desk, desk structure, eligibility, permission, IMA desk, back-testing, P&L attribution]
+    evidence_expected: "Desk definitions and their IMA eligibility status."
+  - id: FRTB-ES-01
+    topic: Expected shortfall
+    requirement: "Expected shortfall is computed at the 97.5th percentile one-tailed confidence level, with liquidity horizons applied per risk-factor category as set in the CRR."
+    source: "CRR Art. 325bc-325bd; Basel Framework MAR33"
+    keywords: [expected shortfall, ES, 97.5%, 97.5th percentile, liquidity horizon, risk factor category]
+    patterns: ['\b97[.,]5\s*(%|th)']
+    evidence_expected: "ES specification and liquidity horizon mapping."
+  - id: FRTB-ES-02
+    topic: Stress-period calibration of ES
+    requirement: "ES is calibrated to a period of stress using a reduced set of risk factors, and the explanatory power of the reduced set is documented."
+    source: "CRR Art. 325bc; Basel Framework MAR33"
+    keywords: [stress period, reduced set of risk factors, stressed calibration, explanatory power, ratio]
+    evidence_expected: "Stress-period selection and reduced-set adequacy."
+  - id: FRTB-NMRF-01
+    topic: Modellability of risk factors
+    requirement: "Each risk factor is assessed for modellability using real price observations as required by the CRR and RTS, and non-modellable risk factors are capitalised through the stress scenario risk measure."
+    source: "CRR Art. 325be and 325bk; Basel Framework MAR31"
+    keywords: [modellability, real price observations, RFET, non-modellable risk factors, NMRF, stress scenario risk measure, SSRM]
+    evidence_expected: "Risk factor eligibility test results and NMRF treatment."
+  - id: FRTB-BT-01
+    topic: FRTB back-testing
+    requirement: "Back-testing compares one-day VaR at the 99th and 97.5th percentiles with actual and hypothetical P&L over the most recent 250 business days at desk level, and at the 99th percentile at the level of the institution's IMA perimeter for the multiplication factor."
+    source: "CRR Art. 325bf; Basel Framework MAR32"
+    keywords: [back-testing, 97.5th percentile, 99th percentile, 250 business days, desk level, overshootings, multiplication factor]
+    patterns: ['\b97[.,]5\s*(%|th)', '\b250\s+(business\s+)?days?\b']
+    evidence_expected: "Desk-level and firm-level back-testing results."
+  - id: FRTB-PLA-01
+    topic: P&L attribution test
+    requirement: "The P&L attribution test compares risk-theoretical P&L with hypothetical P&L at desk level using the metrics specified in the RTS (Spearman correlation and Kolmogorov-Smirnov test statistic), assigning the desk to the resulting PLA zone."
+    source: "CRR Art. 325bg; EBA RTS on back-testing and PLA requirements; Basel Framework MAR32"
+    keywords: [P&L attribution, PLA, risk-theoretical P&L, RTPL, hypothetical P&L, HPL, Spearman, Kolmogorov-Smirnov, PLA zone]
+    evidence_expected: "PLA metrics per desk and zone allocation."
+  - id: FRTB-325BH-01
+    topic: Risk measurement requirements
+    requirement: "The internal risk-measurement model captures all material risk factors of positions in scope, uses data updated at least monthly, and documents proxies and their justification."
+    source: "CRR Art. 325bh"
+    keywords: [risk factors, data update, monthly, proxies, risk measurement, time series quality]
+    evidence_expected: "Risk-factor data and proxy documentation."
+  - id: FRTB-325BI-01
+    topic: Qualitative requirements
+    requirement: "Qualitative requirements are met: independent risk control unit, daily reporting, management body involvement, stress testing, documentation of policies, and use of the model in daily risk management."
+    source: "CRR Art. 325bi"
+    keywords: [risk control unit, independent, daily reporting, management body, stress testing, documentation, use test]
+    evidence_expected: "Governance and qualitative controls of the FRTB model."
+  - id: FRTB-325BJ-01
+    topic: Internal validation (FRTB)
+    requirement: "The FRTB internal model is independently validated, including assumptions, hypothetical portfolios and the adequacy of pricing models and risk factor coverage."
+    source: "CRR Art. 325bj"
+    keywords: [internal validation, independent, hypothetical portfolios, assumptions, pricing models, risk factor coverage]
+    evidence_expected: "Validation report of the FRTB model."
+  - id: FRTB-DRC-01
+    topic: Internal default risk model
+    requirement: "The internal default risk model computes default risk at a 99.9% confidence over a one-year horizon with documented PD and LGD sources, correlation structure and constant-position assumption."
+    source: "CRR Part Three, Title IV, Chapter 1b (internal default risk model); Basel Framework MAR33"
+    keywords: [default risk charge, DRC, 99.9%, one-year, PD, LGD, correlation, constant position]
+    patterns: ['\b99[.,]9\s*%']
+    evidence_expected: "DRC methodology and parameters."

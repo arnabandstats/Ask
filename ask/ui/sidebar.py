@@ -44,7 +44,8 @@ def _bound(widget, label: str, opt: str, **kw):
 @st.dialog("Settings", width="large")
 def settings_dialog() -> None:
     ss = st.session_state
-    general, sources, tests, chat = st.tabs(["General", "Loaded sources", "Built-in tests", "This chat"])
+    general, validation, sources, tests, chat = st.tabs(["General", "Validation", "Loaded sources",
+                                                         "Test library", "This chat"])
 
     with general:
         current = preferences.tool_name()
@@ -71,9 +72,21 @@ def settings_dialog() -> None:
                     "lines actually read, and ask the model to fix anything unsupported.")
         st.caption(f"Answering with **{state.model()}**. Chats are saved in `{config.DB_PATH}`.")
 
+    with validation:
+        _bound(st.text_input, "LLM-judge model", "opt_judge_model",
+               help="Model for LLM-judge tests (GenAI groundedness, atomic facts, …). Keep it pinned: "
+                    "replies are cached by prompt hash, so a rerun replays the same judgements.")
+        _bound(st.text_input, "Databricks SQL warehouse ID", "opt_warehouse",
+               help="Used to read Unity Catalog tables when no Spark session is available "
+                    "(Databricks App, laptop). SQL Warehouses → your warehouse → Connection details.")
+        st.caption(f"Random seed for every test: **{config.VALIDATION_SEED}** (env `ASK_VALIDATION_SEED`). "
+                   f"Tables above **{config.MAX_TABLE_ROWS:,}** rows are hash-sampled "
+                   "(env `ASK_MAX_TABLE_ROWS`). Every test run is saved in "
+                   f"`{config.DATA_DIR / 'validation_runs'}`.")
+
     with sources:
         reg = ss.registry
-        if not reg.sources:
+        if not reg.sources and not reg.models:
             st.caption("Nothing loaded. In the chat, type something like "
                        "`load C:/projects/model_x` or `read the data from D:/data/sample.csv`.")
         for name, src in list(reg.sources.items()):
@@ -84,15 +97,31 @@ def settings_dialog() -> None:
                 if ss.chat_id:
                     store.set_sources(ss.chat_id, reg.records())
                 st.rerun()
+        for name, m in list(reg.models.items()):
+            c1, c2 = st.columns([5, 1])
+            c1.markdown(f"**{name}** · model  \n{m.describe()}")
+            if c2.button("Unload", key=f"unload-model-{name}"):
+                reg.remove(name)
+                if ss.chat_id:
+                    store.set_sources(ss.chat_id, reg.records())
+                st.rerun()
 
     with tests:
-        st.caption("Ask for these in plain words, e.g. “run the classification tests on this data” "
-                   "or “check data quality”.")
-        st.markdown("**Data quality** — missing values, validity checks, IQR outliers, "
-                    "descriptive statistics, distribution plots")
-        for model_type, items in test_catalog().items():
-            st.markdown(f"**{model_type}**")
-            st.markdown("\n".join(f"- {cat} — {desc}" for cat, desc in items))
+        st.caption("Ask in plain words, e.g. “run the calibration tests on this PD data”, "
+                   "“back-test the VaR”, “check the documentation against the ECB guide”.")
+        from ask.validation import core as vcore
+        specs = vcore.catalog()
+        st.markdown(f"**{len(specs)} deterministic and LLM-judge tests**")
+        for key, label in vcore.MODEL_TYPES.items():
+            mine = [s for s in specs if key in s.model_types]
+            if mine:
+                with st.expander(f"{label} · {len(mine)}"):
+                    st.markdown("\n".join(f"- **{s.area}** · {s.name} (`{s.id}`)"
+                                          + (" · LLM judge" if s.kind == "judge" else "") for s in mine))
+        with st.expander("Legacy battery (Excel/HTML report)"):
+            for model_type, items in test_catalog().items():
+                st.markdown(f"**{model_type}**")
+                st.markdown("\n".join(f"- {cat} — {desc}" for cat, desc in items))
 
     with chat:
         if not ss.chat_id:

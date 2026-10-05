@@ -10,6 +10,7 @@ import pandas as pd
 import streamlit as st
 
 from ask.agent.faithfulness import CITATION, parse_ranges
+from ask.validation.store import RUN_CITATION
 
 def message(m: dict, idx: int) -> None:
     """User turns: a grey bubble on the right. Assistant turns: plain text on the left.
@@ -22,6 +23,7 @@ def message(m: dict, idx: int) -> None:
         st.markdown(_compact_citations(m["content"]))
         artifacts(m.get("artifacts") or [], idx)
         verification((m.get("meta") or {}).get("verification"), idx)
+        test_runs((m.get("meta") or {}).get("test_runs"))
 
 
 def assistant_block(idx: int | str):
@@ -40,7 +42,8 @@ def _compact_citations(text: str) -> str:
         name = m.group(1).replace("\\", "/").split(":")[-1].split("/")[-1]
         lines = ", ".join(f"L{a}–{b}" if b != a else f"L{a}" for a, b in parse_ranges(m.group(2)))
         return f" `{name} · {lines}`"
-    return CITATION.sub(short, text)
+    text = CITATION.sub(short, text)
+    return RUN_CITATION.sub(lambda m: f" `test · {m.group(1)}`", text)
 
 
 def artifacts(items: list[dict], idx: int) -> None:
@@ -109,3 +112,21 @@ def verification(v: dict | None, idx: int) -> None:
             for p in problems:
                 if not any(p.startswith(c["ref"]) for c in cites):
                     st.markdown(f"⚠ {p}")
+
+
+def test_runs(run_ids: list[str] | None) -> None:
+    """Provenance of every validation test run behind the answer (from the saved audit records)."""
+    if not run_ids:
+        return
+    from ask.validation import store
+    with st.expander(f"Test runs  ·  {len(run_ids)}", expanded=False):
+        for rid in run_ids:
+            try:
+                r = store.load(rid)
+            except KeyError:
+                st.markdown(f"⚠ `{rid}` — record not found")
+                continue
+            judge = " · LLM judge" if r.get("kind") == "judge" else ""
+            st.markdown(f"`{rid}` **{r['test_name']}** ({r['test_id']}){judge} — {r['status']}  \n"
+                        f"source {r['source'] or '-'} · data sha256 {r['data_fingerprint']} · "
+                        f"rows {r['rows_in']} · seed {r['seed']} · params `{r['params']}`")

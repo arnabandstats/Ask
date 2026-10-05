@@ -16,7 +16,10 @@ ROOT = Path(__file__).resolve().parent.parent
 
 PINNED = {
     "client_create": "e41303cfef403664fcd6dc2cb4aa3eb14040b7f43c226089088c64022026d82c",
-    "ask/analysis/test_engine.py": "88485b7ed0a3fb1fb274a571b73e8f45dd6ab891f6ae5d363fcaea71dbb08a2e",
+    # Changed deliberately (the_ultimate_validator): seeded the two unseeded noise draws, fixed
+    # the uint8 wrap-around in image noise, evaluated surrogate robustness on a hold-out split,
+    # and labelled every surrogate-model result as SURROGATE.
+    "ask/analysis/test_engine.py": "0afc67373e15e80d8317ec801293164c58a600bb8b3f35761488f53bf0dc08ac",
     "ask/analysis/data_quality.py": "b8bfd4d411e936b1309595a4b01230d123dff23a49940205f7978ae5b42deabc",
 }
 

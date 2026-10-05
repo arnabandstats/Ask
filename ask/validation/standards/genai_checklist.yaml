@@ -1,0 +1,124 @@
+id: genai_checklist
+title: GenAI / LLM / RAG system documentation checklist
+version_note: >-
+  Good-practice checklist for documentation of generative AI systems (LLM applications, RAG, agents), referencing
+  externally available sources: EU AI Act (Regulation (EU) 2024/1689) where the system is high-risk or subject to
+  transparency obligations (Art. 50), the NIST AI Risk Management Framework (AI RMF 1.0) and its Generative AI
+  Profile (NIST AI 600-1), and the OWASP Top 10 for LLM Applications. Not a legal requirement in itself; EU AI Act
+  articles apply only where the system falls in their scope.
+applies_to: [genai]
+requirements:
+  - id: GENAI-USE-01
+    topic: Intended use and out-of-scope uses
+    requirement: "The documentation states the intended use, users, tasks supported and decisions influenced, and explicitly lists out-of-scope and prohibited uses."
+    source: "EU AI Act Art. 13 and Annex IV point 1; NIST AI RMF (Map function)"
+    keywords: [intended use, intended purpose, users, out of scope, prohibited use, use cases, not intended]
+    evidence_expected: "Intended use and out-of-scope sections."
+  - id: GENAI-MOD-01
+    topic: Foundation model and versions
+    requirement: "The foundation model(s), provider, exact version/deployment, generation parameters (e.g. temperature, max tokens) and the version-pinning and upgrade policy are documented."
+    source: "EU AI Act Annex IV point 2 (pre-trained systems and third-party tools); NIST AI 600-1"
+    keywords: [foundation model, model version, provider, deployment, temperature, max tokens, version pinning, upgrade]
+    evidence_expected: "Model inventory entry for each LLM with parameters."
+  - id: GENAI-MOD-02
+    topic: Third-party / GPAI dependency
+    requirement: "Dependencies on general-purpose AI model providers are documented, including the information obtained from the provider (capabilities, limitations, evaluation results, usage policies) and contractual/outsourcing arrangements."
+    source: "EU AI Act Art. 53 (obligations of GPAI model providers towards downstream providers); Art. 25"
+    keywords: [general-purpose AI, GPAI, provider documentation, model card, third-party, outsourcing, usage policy]
+    evidence_expected: "Provider documentation and its assessment."
+  - id: GENAI-DATA-01
+    topic: Knowledge sources
+    requirement: "Knowledge/data sources used for retrieval or fine-tuning are listed with provenance, ownership, refresh frequency, access controls and treatment of personal or confidential data."
+    source: "EU AI Act Art. 10 (where high-risk); NIST AI 600-1 (data privacy, information integrity)"
+    keywords: [knowledge base, data sources, provenance, refresh, access control, personal data, confidential, corpus]
+    evidence_expected: "Knowledge-source register."
+  - id: GENAI-RAG-01
+    topic: Retrieval design
+    requirement: "The retrieval pipeline is documented: document parsing, chunking strategy, embedding model, index type, retrieval parameters (top-k, similarity threshold), re-ranking and metadata filters, with the rationale for each choice."
+    source: "EU AI Act Annex IV point 2 (design choices and rationale); good practice"
+    keywords: [retrieval, chunking, chunk size, embedding model, vector index, top-k, re-ranking, similarity threshold, RAG]
+    evidence_expected: "Retrieval design section and parameter rationale."
+  - id: GENAI-PRM-01
+    topic: Prompt management
+    requirement: "System prompts and prompt templates are version-controlled, changes are reviewed and tested before release, and the prompt version is recorded with each output."
+    source: "EU AI Act Art. 12 (logging) and Annex IV point 6 (changes); good practice"
+    keywords: [system prompt, prompt template, prompt version, version control, prompt management, change review]
+    evidence_expected: "Prompt repository and change process."
+  - id: GENAI-EVAL-01
+    topic: Evaluation data sets
+    requirement: "Evaluation data sets (golden question-answer sets, adversarial sets) are representative of intended use, their construction and labelling are documented, and they are kept separate from development tuning."
+    source: "EU AI Act Art. 10(3) and Annex IV point 2; NIST AI 600-1"
+    keywords: [evaluation data set, golden set, test set, ground truth, reference answers, labelling, benchmark]
+    evidence_expected: "Evaluation data description and size."
+  - id: GENAI-EVAL-02
+    topic: Groundedness and hallucination
+    requirement: "Evaluation results report groundedness/faithfulness to retrieved context and hallucination rates, with the measurement method (human, rule-based or LLM-as-judge) and its own reliability documented."
+    source: "NIST AI 600-1 (confabulation); EU AI Act Art. 15 (accuracy)"
+    keywords: [groundedness, faithfulness, hallucination, confabulation, LLM-as-judge, citation accuracy, factual consistency]
+    evidence_expected: "Groundedness/hallucination metrics and evaluator reliability."
+  - id: GENAI-EVAL-03
+    topic: Answer quality and retrieval metrics
+    requirement: "Answer relevance/correctness and retrieval quality (e.g. context precision/recall, hit rate) are measured on the evaluation set, by task or segment."
+    source: "EU AI Act Art. 15 (accuracy metrics); good practice"
+    keywords: [answer relevance, correctness, context precision, context recall, hit rate, retrieval quality, accuracy]
+    evidence_expected: "Metric tables by task."
+  - id: GENAI-EVAL-04
+    topic: Bias and harmful content
+    requirement: "Outputs are evaluated for bias, toxicity and harmful or non-compliant content relevant to the use case."
+    source: "EU AI Act Art. 10 and 15 (where high-risk); NIST AI 600-1 (harmful bias, dangerous content)"
+    keywords: [bias, toxicity, harmful content, fairness, discrimination, red teaming]
+    evidence_expected: "Bias/harm evaluation results."
+  - id: GENAI-SEC-01
+    topic: Prompt-injection and jailbreak defences
+    requirement: "Defences against direct and indirect prompt injection and jailbreaks (input filtering, instruction hierarchy, content isolation of retrieved documents, tool-use restrictions) are documented and tested adversarially."
+    source: "OWASP Top 10 for LLM Applications (LLM01 Prompt Injection); EU AI Act Art. 15(5)"
+    keywords: [prompt injection, jailbreak, indirect prompt injection, adversarial testing, red teaming, input filtering, instruction hierarchy]
+    evidence_expected: "Threat model and adversarial test results."
+  - id: GENAI-SEC-02
+    topic: Guardrails and output controls
+    requirement: "Guardrails on inputs and outputs (topic restrictions, PII redaction, refusal behaviour, output validation) are specified with their tests."
+    source: "OWASP Top 10 for LLM Applications; NIST AI 600-1"
+    keywords: [guardrails, PII, redaction, refusal, output validation, content filter, topic restriction]
+    evidence_expected: "Guardrail specification and test evidence."
+  - id: GENAI-SEC-03
+    topic: Agent tools and permissions
+    requirement: "Where the system calls tools or acts autonomously, the tools available, their permissions (least privilege), confirmation steps for consequential actions and failure handling are documented."
+    source: "OWASP Top 10 for LLM Applications (excessive agency); EU AI Act Art. 14"
+    keywords: [tools, tool use, agent, permissions, least privilege, excessive agency, confirmation, function calling]
+    evidence_expected: "Tool inventory with permissions and controls."
+  - id: GENAI-HO-01
+    topic: Human oversight
+    requirement: "Human oversight is defined: which outputs are reviewed by people, how users can verify sources, override or reject outputs, and how automation bias is mitigated."
+    source: "EU AI Act Art. 14; NIST AI RMF (Manage function)"
+    keywords: [human oversight, human-in-the-loop, review, override, automation bias, verify sources, citations]
+    evidence_expected: "Oversight design and user guidance."
+  - id: GENAI-TR-01
+    topic: Transparency to users
+    requirement: "Users are informed that they are interacting with an AI system and that content is AI-generated where Art. 50 applies, and the limitations are communicated."
+    source: "EU AI Act Art. 50"
+    keywords: [transparency, AI-generated, disclosure, interacting with an AI, user notice, limitations]
+    evidence_expected: "User-facing disclosure."
+  - id: GENAI-LOG-01
+    topic: Logging and traceability
+    requirement: "Each interaction logs the input, retrieved context identifiers, prompt and model versions, output, tool calls and user feedback, with retention and access rules."
+    source: "EU AI Act Art. 12 and Art. 26; NIST AI 600-1"
+    keywords: [logging, logs, traceability, audit trail, retention, interaction log, prompt version, model version]
+    evidence_expected: "Log schema and retention policy."
+  - id: GENAI-MON-01
+    topic: Monitoring
+    requirement: "Production monitoring covers quality metrics (sampled groundedness, user feedback), drift in queries and corpus, guardrail triggers, latency/cost and incidents, with thresholds and escalation."
+    source: "EU AI Act Art. 72 (post-market monitoring); NIST AI RMF (Manage function)"
+    keywords: [monitoring, drift, user feedback, incidents, guardrail triggers, latency, escalation, sampling]
+    evidence_expected: "Monitoring plan and dashboards."
+  - id: GENAI-REP-01
+    topic: Non-determinism and reproducibility
+    requirement: "The degree of output non-determinism is characterised (repeat-run variability) and the settings used to make evaluation reproducible are documented."
+    source: "Good practice; EU AI Act Art. 15 (consistent performance)"
+    keywords: [non-determinism, reproducibility, repeatability, seed, temperature, variability, consistency]
+    evidence_expected: "Repeat-run analysis and evaluation settings."
+  - id: GENAI-LIM-01
+    topic: Limitations
+    requirement: "Known failure modes and limitations (knowledge cut-off, unsupported languages/questions, retrieval gaps, hallucination risk) are documented with mitigants."
+    source: "EU AI Act Annex IV point 3; NIST AI 600-1"
+    keywords: [limitations, failure modes, knowledge cut-off, unsupported, retrieval gaps, hallucination risk, mitigants]
+    evidence_expected: "Limitations section."

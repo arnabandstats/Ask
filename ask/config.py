@@ -18,8 +18,14 @@ DEFAULT_MODEL = os.getenv("OPENAI_DEPLOYMENT_NAME", "gpt-4.1")
 DEEP_MODEL = os.getenv("ASK_DEEP_MODEL", "gpt-5.6-luna")
 DEEP_REASONING_EFFORT = os.getenv("ASK_REASONING_EFFORT", "medium")   # low | medium | high
 
+# Validation library (ask/validation).
+VALIDATION_SEED = int(os.getenv("ASK_VALIDATION_SEED", "20240601"))   # every random step uses this
+JUDGE_MODEL = os.getenv("ASK_JUDGE_MODEL", "")        # LLM-judge tests; blank = the default model
+MAX_TABLE_ROWS = int(os.getenv("ASK_MAX_TABLE_ROWS", "2000000"))      # above this, tables are hash-sampled
+MAX_SUITE_TESTS = 60          # tests one run_validation_suite call may run
+
 # Agent limits.
-MAX_AGENT_STEPS = 12          # tool-calling rounds per answer
+MAX_AGENT_STEPS = 20          # tool-calling rounds per answer
 MAX_REPAIR_STEPS = 5          # extra rounds for the citation-repair pass
 HISTORY_TURNS = 12            # past user/assistant turns sent with each question
 MAX_TOOL_OUTPUT_CHARS = 24_000

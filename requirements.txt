@@ -31,6 +31,10 @@ imbalanced-learn
 shap
 opencv-python-headless   # no GUI needed; also imports on servers without display libraries
 xlsxwriter
+scipy                    # statistical tests in ask/validation
+pyyaml                   # regulatory documentation checklists (ask/validation/standards)
+joblib                   # model artefacts (.joblib)
+# mlflow                 # optional: load_model with runs:/ or models:/ URIs (preinstalled on Databricks ML runtimes)
 
 # ── Tests ────────────────────────────────────────────────────
 pytest

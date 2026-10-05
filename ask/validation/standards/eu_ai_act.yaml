@@ -1,0 +1,169 @@
+id: eu_ai_act
+title: EU AI Act — requirements for high-risk AI systems (Regulation (EU) 2024/1689)
+version_note: >-
+  Based on the publicly available Regulation (EU) 2024/1689 (Artificial Intelligence Act), Chapter III Section 2
+  (Art. 8-15), provider and deployer obligations (Art. 16-27), Art. 72 and Annex IV. Annex III point 5(b) classifies
+  as high-risk AI systems intended to evaluate the creditworthiness of natural persons or establish their credit
+  score (excluding systems used to detect financial fraud). Obligations for Annex III systems apply from the
+  dates in Art. 113 (subject to any later amendment of the timeline — check the current text). Applicability to a
+  given model depends on its classification; this checklist does not decide that. Paraphrased; review against the
+  current text before relying on it.
+applies_to: [pd, ews, ml_classification, ml_regression, ml_unsupervised, genai]
+requirements:
+  - id: AIA-CLS-01
+    topic: High-risk classification
+    requirement: "The documentation states whether the system is an AI system under the Act and whether it is high-risk (e.g. Annex III point 5(b) creditworthiness of natural persons), including any reliance on the Art. 6(3) derogation and its justification."
+    source: "Regulation (EU) 2024/1689 Art. 3(1), Art. 6 and Annex III point 5(b)"
+    keywords: [AI Act, high-risk, Annex III, creditworthiness, credit score, natural persons, Article 6, classification]
+    evidence_expected: "AI Act classification assessment and conclusion."
+  - id: AIA-09-01
+    topic: Risk management system
+    requirement: "A risk management system is established, documented and maintained as a continuous iterative process over the system's life cycle, identifying and analysing known and reasonably foreseeable risks to health, safety or fundamental rights and adopting risk management measures."
+    source: "Regulation (EU) 2024/1689 Art. 9"
+    keywords: [risk management system, foreseeable risks, fundamental rights, risk management measures, life cycle, iterative]
+    evidence_expected: "AI risk register and measures over the life cycle."
+  - id: AIA-09-02
+    topic: Testing against defined metrics
+    requirement: "The high-risk system is tested against prior defined metrics and probabilistic thresholds appropriate to its intended purpose, before placing on the market and throughout development as appropriate."
+    source: "Regulation (EU) 2024/1689 Art. 9"
+    keywords: [testing, prior defined metrics, probabilistic thresholds, test results, intended purpose, acceptance criteria]
+    evidence_expected: "Test plan with predefined metrics/thresholds and test results."
+  - id: AIA-10-01
+    topic: Data governance practices
+    requirement: "Training, validation and testing data sets are subject to data governance practices covering design choices, data collection and origin, preparation operations (annotation, labelling, cleaning, enrichment, aggregation), assumptions, and assessment of availability, quantity and suitability."
+    source: "Regulation (EU) 2024/1689 Art. 10(2)"
+    keywords: [data governance, training data, validation data, testing data, data collection, labelling, data cleaning, data origin]
+    evidence_expected: "Data governance description for each data set."
+  - id: AIA-10-02
+    topic: Bias examination
+    requirement: "Data sets are examined for possible biases likely to affect health and safety, fundamental rights or lead to prohibited discrimination, and measures to detect, prevent and mitigate those biases are taken."
+    source: "Regulation (EU) 2024/1689 Art. 10(2)"
+    keywords: [bias, biases, discrimination, fairness, protected characteristics, mitigation, disparate impact]
+    evidence_expected: "Bias analysis of data and mitigation measures."
+  - id: AIA-10-03
+    topic: Data quality and representativeness
+    requirement: "Training, validation and testing data sets are relevant, sufficiently representative, and to the best extent possible free of errors and complete in view of the intended purpose, with appropriate statistical properties for the persons or groups concerned."
+    source: "Regulation (EU) 2024/1689 Art. 10(3)"
+    keywords: [representative, relevant, free of errors, complete, statistical properties, data quality, groups of persons]
+    evidence_expected: "Data quality and representativeness evidence for each data set."
+  - id: AIA-10-04
+    topic: Data gaps
+    requirement: "Data gaps or shortcomings that prevent compliance are identified, together with how they are addressed."
+    source: "Regulation (EU) 2024/1689 Art. 10(2)"
+    keywords: [data gaps, shortcomings, missing data, limitations of data, data shortcomings]
+    evidence_expected: "List of data gaps and remediation."
+  - id: AIA-11-01
+    topic: Technical documentation
+    requirement: "Technical documentation containing at least the elements of Annex IV is drawn up before the system is placed on the market or put into service and is kept up to date."
+    source: "Regulation (EU) 2024/1689 Art. 11 and Annex IV"
+    keywords: [technical documentation, Annex IV, kept up to date, placed on the market, put into service]
+    evidence_expected: "Mapping of documentation to Annex IV items."
+  - id: AIA-ANX4-01
+    topic: General description (Annex IV point 1)
+    requirement: "The documentation gives a general description of the system: intended purpose, provider, version, interaction with other systems, software/firmware versions, forms of deployment, hardware, and user-interface/instructions for use."
+    source: "Regulation (EU) 2024/1689 Annex IV point 1"
+    keywords: [intended purpose, version, provider, deployment, hardware, instructions for use, interaction with other systems]
+    evidence_expected: "General description section."
+  - id: AIA-ANX4-02
+    topic: Development process and design choices (Annex IV point 2)
+    requirement: "The documentation describes the development methods and steps (including use of pre-trained or third-party tools), design specifications, general logic and algorithms, key design choices with rationale and assumptions, what the system is designed to optimise for, and the system architecture."
+    source: "Regulation (EU) 2024/1689 Annex IV point 2"
+    keywords: [design specifications, general logic, algorithms, design choices, rationale, assumptions, optimise, architecture, pre-trained]
+    evidence_expected: "Development and design section with rationale."
+  - id: AIA-ANX4-03
+    topic: Data requirements and datasheets (Annex IV point 2)
+    requirement: "The documentation describes the data requirements in datasheets: training methodologies and techniques, training data sets used, their provenance, scope and main characteristics, how data were obtained and selected, labelling procedures and data cleaning methodologies."
+    source: "Regulation (EU) 2024/1689 Annex IV point 2"
+    keywords: [datasheet, provenance, training methodologies, data sets, labelling procedures, data cleaning, selection]
+    evidence_expected: "Datasheets for training/validation/test data."
+  - id: AIA-ANX4-04
+    topic: Validation and testing procedures (Annex IV point 2)
+    requirement: "The documentation describes validation and testing procedures, the data used and its characteristics, metrics for accuracy, robustness and compliance with other requirements, potentially discriminatory impacts, and test logs and reports dated and signed by the responsible persons."
+    source: "Regulation (EU) 2024/1689 Annex IV point 2"
+    keywords: [validation and testing, test logs, test reports, accuracy, robustness, discriminatory impacts, signed, metrics]
+    evidence_expected: "Validation/testing report with metrics and signed test logs."
+  - id: AIA-ANX4-05
+    topic: Capabilities and limitations (Annex IV point 3)
+    requirement: "The documentation details the system's capabilities and limitations in performance, including degrees of accuracy for specific persons or groups, overall expected accuracy, foreseeable unintended outcomes and sources of risk, human oversight measures and input data specifications."
+    source: "Regulation (EU) 2024/1689 Annex IV point 3"
+    keywords: [limitations, capabilities, degrees of accuracy, specific groups, unintended outcomes, sources of risk, input data specifications]
+    evidence_expected: "Performance by subgroup and limitations section."
+  - id: AIA-ANX4-06
+    topic: Appropriateness of metrics, changes, post-market plan (Annex IV points 4-9)
+    requirement: "The documentation explains why the performance metrics are appropriate, describes the risk management system, lists relevant changes over the life cycle, the harmonised standards or other specifications applied, the EU declaration of conformity and the post-market monitoring plan."
+    source: "Regulation (EU) 2024/1689 Annex IV points 4-9"
+    keywords: [appropriateness of performance metrics, harmonised standards, declaration of conformity, post-market monitoring plan, changes, life cycle]
+    evidence_expected: "Sections covering points 4-9 of Annex IV."
+  - id: AIA-12-01
+    topic: Record-keeping (logging)
+    requirement: "The system technically allows the automatic recording of events (logs) over its lifetime, enabling traceability appropriate to its intended purpose, including identification of situations that may result in risk or substantial modification and post-market monitoring."
+    source: "Regulation (EU) 2024/1689 Art. 12"
+    keywords: [logging, logs, automatic recording, traceability, events, audit trail, record-keeping]
+    evidence_expected: "Logging design: what is logged, retention and access."
+  - id: AIA-13-01
+    topic: Transparency and instructions for use
+    requirement: "Instructions for use give deployers the system's characteristics, capabilities and limitations, including intended purpose, level of accuracy and its metrics, robustness and cybersecurity, known circumstances that may lead to risks, performance for specific persons or groups, input data specifications, and how to interpret outputs."
+    source: "Regulation (EU) 2024/1689 Art. 13"
+    keywords: [instructions for use, transparency, interpret outputs, level of accuracy, deployers, known circumstances, characteristics]
+    evidence_expected: "User/deployer instructions covering Art. 13 items."
+  - id: AIA-14-01
+    topic: Human oversight design
+    requirement: "The system is designed so that natural persons can effectively oversee it, understand its capacities and limitations, remain aware of automation bias, correctly interpret its output, decide not to use or override it, and intervene or stop it."
+    source: "Regulation (EU) 2024/1689 Art. 14"
+    keywords: [human oversight, automation bias, override, intervene, stop, interpret output, human-in-the-loop]
+    evidence_expected: "Human oversight measures and how they are enabled."
+  - id: AIA-15-01
+    topic: Accuracy
+    requirement: "The system achieves an appropriate level of accuracy, and the levels of accuracy and relevant accuracy metrics are declared in the instructions for use."
+    source: "Regulation (EU) 2024/1689 Art. 15(1)-(3)"
+    keywords: [accuracy, accuracy metrics, declared, performance level, instructions for use]
+    evidence_expected: "Declared accuracy metrics and their values."
+  - id: AIA-15-02
+    topic: Robustness and feedback loops
+    requirement: "The system is resilient to errors, faults and inconsistencies, with technical redundancy or fail-safe plans where appropriate, and systems that continue to learn after deployment are designed to eliminate or reduce biased outputs from feedback loops."
+    source: "Regulation (EU) 2024/1689 Art. 15(4)"
+    keywords: [robustness, resilience, errors, fail-safe, redundancy, feedback loops, continue to learn]
+    evidence_expected: "Robustness tests and feedback-loop controls."
+  - id: AIA-15-03
+    topic: Cybersecurity and AI-specific attacks
+    requirement: "Cybersecurity measures address AI-specific vulnerabilities, including data poisoning, model poisoning, adversarial examples or model evasion, confidentiality attacks and model flaws."
+    source: "Regulation (EU) 2024/1689 Art. 15(5)"
+    keywords: [cybersecurity, data poisoning, model poisoning, adversarial examples, model evasion, confidentiality attacks, prompt injection]
+    evidence_expected: "Threat model and security tests for AI-specific attacks."
+  - id: AIA-17-01
+    topic: Quality management system
+    requirement: "A quality management system covers regulatory compliance strategy, design and development techniques, examination/test/validation procedures, data management, risk management, post-market monitoring, incident reporting, record-keeping, resource management and an accountability framework (for financial institutions, largely met via internal governance under Union financial services law)."
+    source: "Regulation (EU) 2024/1689 Art. 17 (incl. Art. 17(4) for financial institutions)"
+    keywords: [quality management system, accountability framework, internal governance, compliance strategy, procedures, data management]
+    evidence_expected: "Reference to the QMS/internal governance framework covering the system."
+  - id: AIA-18-01
+    topic: Documentation retention
+    requirement: "Technical documentation, QMS documentation and the EU declaration of conformity are kept available for the period required by the Act after the system is placed on the market."
+    source: "Regulation (EU) 2024/1689 Art. 18"
+    keywords: [retention, documentation keeping, 10 years, ten years, kept available]
+    evidence_expected: "Documentation retention policy."
+  - id: AIA-26-01
+    topic: Deployer obligations
+    requirement: "As deployer, the institution uses the system in line with the instructions for use, assigns human oversight to competent persons, ensures input data are relevant and sufficiently representative, monitors operation, and keeps automatically generated logs for the required period."
+    source: "Regulation (EU) 2024/1689 Art. 26"
+    keywords: [deployer, instructions for use, competent persons, monitoring, logs, six months, input data]
+    evidence_expected: "Deployer controls: oversight staffing, monitoring and log retention."
+  - id: AIA-27-01
+    topic: Fundamental rights impact assessment
+    requirement: "For deployers of Annex III point 5(b) systems (creditworthiness/credit scoring of natural persons), a fundamental rights impact assessment is performed before first use."
+    source: "Regulation (EU) 2024/1689 Art. 27"
+    model_types: [pd, ml_classification, ml_regression]
+    keywords: [fundamental rights impact assessment, FRIA, affected persons, fundamental rights, impact assessment]
+    evidence_expected: "FRIA document and its results."
+  - id: AIA-72-01
+    topic: Post-market monitoring
+    requirement: "A post-market monitoring system actively and systematically collects and analyses data on the system's performance throughout its lifetime, based on a post-market monitoring plan."
+    source: "Regulation (EU) 2024/1689 Art. 72"
+    keywords: [post-market monitoring, monitoring plan, performance monitoring, lifetime, ongoing monitoring]
+    evidence_expected: "Post-market/ongoing monitoring plan and reports."
+  - id: AIA-86-01
+    topic: Explanation of individual decisions
+    requirement: "Affected persons subject to decisions based on the output of an Annex III high-risk system that produce legal or similarly significant effects can obtain a clear and meaningful explanation of the role of the AI system in the decision."
+    source: "Regulation (EU) 2024/1689 Art. 86"
+    keywords: [explanation, right to explanation, explainability, affected persons, reason codes, adverse action, individual decision]
+    evidence_expected: "Process and tooling for individual explanations (e.g. reason codes)."

@@ -29,6 +29,12 @@ CLF, REG = "Supervised: Classification", "Supervised: Regression"
 CLU, DIM = "Unsupervised: Clustering", "Unsupervised: Dimensionality Reduction"
 CV = "Computer Vision & Image Processing"
 
+# Surrogate-model results say so in their names (they are not the model under validation).
+CV_ROW = "5-Fold CV Average Score (SURROGATE RandomForest, not the model under validation)"
+IMP_CHART = "Feature Importances (SURROGATE RandomForest, not the model under validation)"
+ROBUST_ROWS = {"Robustness Baseline Score (SURROGATE, hold-out)", "Robustness Noisy Score (SURROGATE, hold-out)",
+               "Performance Degradation (SURROGATE, hold-out)"}
+
 # What each Test Category must produce when run alone.
 #   rows   -> "Test" values it adds to the Execution_Metrics sheet
 #   sheets -> Excel sheets it writes
@@ -41,25 +47,23 @@ EXPECTED: dict[tuple[str, str], dict] = {
     (CLF, "Class Imbalance Handling"): dict(sheets={"SMOTE_Imbalance"}),
     (CLF, "Ranking"): dict(rows={"Gini Rank Ordering"}),
     (CLF, "Statistical Diagnostics"): dict(sheets={"VIF_Diagnostics"}),
-    (CLF, "Validation & Sampling"): dict(rows={"5-Fold CV Average Score"}),
+    (CLF, "Validation & Sampling"): dict(rows={CV_ROW}),
     (CLF, "Explainability"): dict(sheets={"PlotData_FeatureImportance"},
-                                  charts={"Feature Importances"}, pngs=1),
+                                  charts={IMP_CHART}, pngs=1),
     (CLF, "Bias–Variance Analysis"): dict(sheets={"PlotData_LearningCurve"},
                                           charts={"Learning Curve (Surrogate)"}),
-    (CLF, "Robustness & Sensitivity"): dict(rows={"Robustness Baseline Score", "Robustness Noisy Score",
-                                                  "Performance Degradation"}),
+    (CLF, "Robustness & Sensitivity"): dict(rows=ROBUST_ROWS),
     (CLF, "Drift Detection"): dict(rows={"Population Stability Index (PSI)"}),
 
     (REG, "Performance Metrics"): dict(rows={"Regression Performance"},
                                        sheets={"PlotData_Residuals"}, charts={"Residuals"}),
     (REG, "Statistical Diagnostics"): dict(sheets={"VIF_Diagnostics"}),
-    (REG, "Validation & Sampling"): dict(rows={"5-Fold CV Average Score"}),
+    (REG, "Validation & Sampling"): dict(rows={CV_ROW}),
     (REG, "Explainability"): dict(sheets={"PlotData_FeatureImportance"},
-                                  charts={"Feature Importances"}, pngs=1),
+                                  charts={IMP_CHART}, pngs=1),
     (REG, "Bias–Variance Analysis"): dict(sheets={"PlotData_LearningCurve"},
                                           charts={"Learning Curve (Surrogate)"}),
-    (REG, "Robustness & Sensitivity"): dict(rows={"Robustness Baseline Score", "Robustness Noisy Score",
-                                                  "Performance Degradation"}),
+    (REG, "Robustness & Sensitivity"): dict(rows=ROBUST_ROWS),
     (REG, "Drift Detection"): dict(rows={"Population Stability Index (PSI)"}),
 
     (CLU, "Clustering Metrics"): dict(rows={"Clustering Metrics"}),

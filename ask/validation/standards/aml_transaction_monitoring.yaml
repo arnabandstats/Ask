@@ -1,0 +1,114 @@
+id: aml_transaction_monitoring
+title: AML transaction-monitoring model documentation (AMLR 2024/1624, AMLD, FATF Recommendations, EBA ML/TF Risk Factors Guidelines)
+version_note: >-
+  Based on publicly available texts: Regulation (EU) 2024/1624 (AMLR, applicable from 10 July 2027), Directive (EU)
+  2015/849 (AMLD, as amended, applicable until then), the FATF Recommendations, and the EBA ML/TF Risk Factors
+  Guidelines (EBA/GL/2021/02). These texts set obligations (risk-based approach, ongoing monitoring, reporting,
+  internal controls, record keeping); they do not prescribe model documentation content. Requirements below marked
+  "supervisory good practice" translate those obligations into what a transaction-monitoring model's documentation
+  should evidence. Cited at chapter/recommendation level; review against current texts before relying on it.
+applies_to: [aml]
+requirements:
+  - id: AML-RBA-01
+    topic: Link to business-wide risk assessment
+    requirement: "The monitoring scope, scenarios and segmentation are derived from and traceable to the institution's business-wide ML/TF risk assessment (customers, products, channels, geographies)."
+    source: "FATF Recommendation 1; AMLR Chapter II (business-wide risk assessment); AMLD Art. 8; EBA/GL/2021/02 Title I"
+    keywords: [risk-based approach, business-wide risk assessment, risk assessment, risk factors, customers, products, channels, geographies]
+    evidence_expected: "Traceability matrix from risk assessment to scenarios/rules."
+  - id: AML-RBA-02
+    topic: Customer risk segmentation
+    requirement: "Customers and accounts are segmented for monitoring (e.g. by customer type, risk rating, business activity), and the segmentation is justified with data analysis."
+    source: "EBA/GL/2021/02 (risk factors and monitoring); supervisory good practice"
+    keywords: [segmentation, customer segments, peer group, customer risk rating, risk rating, clustering]
+    evidence_expected: "Segmentation method and analysis supporting segment boundaries."
+  - id: AML-COV-01
+    topic: Typology coverage
+    requirement: "Scenarios are mapped to the ML/TF typologies and red flags relevant to the institution's risk profile (including FATF and FIU typologies), and coverage gaps are identified and justified."
+    source: "FATF Recommendations 1, 10 and 20; EBA/GL/2021/02; supervisory good practice"
+    keywords: [typologies, typology, red flags, scenario coverage, coverage gap, scenario library, structuring, smurfing, mule]
+    evidence_expected: "Scenario-to-typology coverage matrix with gap analysis."
+  - id: AML-COV-02
+    topic: Scenario logic
+    requirement: "Each scenario's logic (parameters, look-back periods, aggregation, conditions) is documented precisely enough to be re-implemented and tested."
+    source: "Supervisory good practice (model documentation); FATF Recommendation 10 (ongoing due diligence)"
+    keywords: [scenario logic, rule, look-back period, aggregation, parameters, conditions, rule description]
+    evidence_expected: "Scenario specifications per rule."
+  - id: AML-THR-01
+    topic: Threshold rationale
+    requirement: "Thresholds for each scenario and segment are set with a documented, data-driven rationale (e.g. distribution analysis, above-the-line and below-the-line testing) rather than default vendor values."
+    source: "Supervisory good practice; FATF Recommendation 1 (risk-based approach)"
+    keywords: [threshold, thresholds, above-the-line, below-the-line, ATL, BTL, threshold setting, calibration, percentile]
+    evidence_expected: "Threshold-setting analysis with ATL/BTL results per scenario."
+  - id: AML-THR-02
+    topic: Periodic tuning
+    requirement: "Scenarios and thresholds are reviewed and tuned periodically and on triggers (new products, typology changes, performance deterioration), with the tuning results and approvals documented."
+    source: "EBA/GL/2021/02 (monitoring); supervisory good practice"
+    keywords: [tuning, periodic review, re-calibration, recalibration, optimisation, review frequency, trigger]
+    evidence_expected: "Tuning log with dates, changes and approvals."
+  - id: AML-DATA-01
+    topic: Data completeness and lineage
+    requirement: "Data feeding the monitoring system are complete and accurate: all relevant source systems, transaction types and customers are mapped, with reconciliation of volumes from source to monitoring system and controls for rejected or missing records."
+    source: "AMLR Chapter III (ongoing monitoring of transactions); supervisory good practice"
+    keywords: [data completeness, reconciliation, data lineage, source systems, transaction types, data mapping, missing records, data quality]
+    evidence_expected: "Data lineage and reconciliation results (counts/amounts) source vs TM system."
+  - id: AML-DATA-02
+    topic: Customer and KYC data quality
+    requirement: "The KYC/customer data used by scenarios (risk rating, business type, expected activity) are of known quality and their gaps are addressed."
+    source: "FATF Recommendation 10; AMLR Chapter III (customer due diligence)"
+    keywords: [KYC, customer due diligence, CDD, expected activity, customer data, data quality, risk rating]
+    evidence_expected: "KYC data quality assessment."
+  - id: AML-PERF-01
+    topic: Effectiveness measurement
+    requirement: "Monitoring effectiveness is measured with defined metrics (e.g. alert volumes, alert-to-case and alert-to-SAR conversion rates, false positive rates) by scenario and segment, tracked over time."
+    source: "FATF Recommendation 20; supervisory good practice"
+    keywords: [alert-to-SAR, conversion rate, false positive, productive alerts, effectiveness, alert volumes, STR, SAR]
+    evidence_expected: "Performance metrics per scenario and their trend."
+  - id: AML-PERF-02
+    topic: Below-the-line and missed-risk testing
+    requirement: "The risk of missed suspicious activity is assessed (e.g. below-the-line sampling, back-testing against known SARs/cases, typology simulations)."
+    source: "Supervisory good practice"
+    keywords: [below-the-line, back-testing, known cases, missed, simulation, synthetic scenarios, sample testing]
+    evidence_expected: "BTL samples and results, or back-testing on known cases."
+  - id: AML-ALERT-01
+    topic: Alert handling and escalation
+    requirement: "Alert investigation, escalation and the decision to report to the FIU are documented, including timeliness standards and quality assurance of alert dispositions."
+    source: "FATF Recommendation 20; AMLR Chapter V (reporting obligations); AMLD Art. 33"
+    keywords: [alert handling, investigation, escalation, FIU, suspicious transaction report, STR, SAR, quality assurance, timeliness]
+    evidence_expected: "Alert workflow, SLAs and QA results."
+  - id: AML-GOV-01
+    topic: Governance and approval
+    requirement: "The model and its changes are owned and approved within the AML governance (compliance officer/management body), and the institution's internal policies, procedures and controls cover the monitoring system."
+    source: "FATF Recommendation 18; AMLR Chapter II (internal policies, procedures and controls)"
+    keywords: [compliance officer, AML governance, approval, management body, policies and procedures, internal controls, owner]
+    evidence_expected: "Approval records and governance description."
+  - id: AML-GOV-02
+    topic: Independent testing
+    requirement: "The monitoring system is subject to independent testing or audit of its design, data, scenarios and thresholds."
+    source: "FATF Recommendation 18 (independent audit function); supervisory good practice"
+    keywords: [independent testing, independent validation, internal audit, audit, model validation, effective challenge]
+    evidence_expected: "Independent test/validation reports and findings."
+  - id: AML-REC-01
+    topic: Record keeping
+    requirement: "Records of transactions, alerts and dispositions are retained for the period required by law (at least five years under FATF Recommendation 11 and EU law)."
+    source: "FATF Recommendation 11; AMLR (record retention); AMLD Art. 40"
+    keywords: [record keeping, retention, five years, 5 years, audit trail, records]
+    patterns: ['\b(5|five)\s+years?\b']
+    evidence_expected: "Retention policy for TM data and alerts."
+  - id: AML-SCR-01
+    topic: Sanctions and name screening
+    requirement: "Where screening is in scope, the lists used, matching logic (fuzzy matching, thresholds), list update frequency and testing of match quality are documented."
+    source: "FATF Recommendations 6 and 7 (targeted financial sanctions); supervisory good practice"
+    keywords: [screening, sanctions, fuzzy matching, name matching, match threshold, watch list, PEP, list update]
+    evidence_expected: "Screening configuration and match-quality tests."
+  - id: AML-ML-01
+    topic: Machine-learning components
+    requirement: "Where machine-learning or anomaly-detection components are used, their training data, labels, explainability of alerts for investigators, and drift monitoring are documented, and their use is consistent with the risk-based approach."
+    source: "FATF guidance on new technologies for AML/CFT; supervisory good practice"
+    keywords: [machine learning, anomaly detection, explainability, labels, drift, model monitoring, feature importance]
+    evidence_expected: "ML component documentation and monitoring."
+  - id: AML-LIM-01
+    topic: Known limitations
+    requirement: "Known limitations of the monitoring (uncovered products, channels or typologies, data gaps, system constraints) are listed with compensating controls."
+    source: "Supervisory good practice"
+    keywords: [limitations, compensating controls, not covered, coverage gap, data gaps, known limitations]
+    evidence_expected: "Limitations register with compensating controls."

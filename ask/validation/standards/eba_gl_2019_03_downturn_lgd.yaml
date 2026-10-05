@@ -1,0 +1,84 @@
+id: eba_gl_2019_03_downturn_lgd
+title: EBA Guidelines for the estimation of LGD appropriate for an economic downturn (EBA/GL/2019/03) and RTS on economic downturn
+version_note: >-
+  Based on the publicly available EBA/GL/2019/03 and Commission Delegated Regulation (EU) 2021/930 (RTS specifying
+  the nature, severity and duration of an economic downturn; the RTS also covers conversion factors).
+  Paraphrased and cited by topic, not by paragraph number; quantitative calibration rules of the Guidelines
+  (e.g. the reference value and add-on approach) are named but not restated. Review against the current texts
+  before relying on it.
+applies_to: [lgd, ead]
+requirements:
+  - id: DTLGD-RTS-01
+    topic: Economic factors
+    requirement: "The economic factors relevant to the exposure type (e.g. GDP, unemployment rate, property or other asset price indices, sector-specific indicators) are identified and their relevance to realised LGDs is analysed."
+    source: "Commission Delegated Regulation (EU) 2021/930 (nature of an economic downturn)"
+    keywords: [economic factors, GDP, unemployment, house price, property prices, macroeconomic indicators, sector-specific]
+    evidence_expected: "List of economic factors considered and the analysis of their link to LGD/CCF."
+  - id: DTLGD-RTS-02
+    topic: Downturn period identification
+    requirement: "The downturn period is identified from the evolution of the selected economic factors over a sufficiently long history (the RTS refers to at least 20 years), considering the severity and duration of the downturn as specified in the RTS."
+    source: "Commission Delegated Regulation (EU) 2021/930 (severity and duration of an economic downturn)"
+    keywords: [downturn period, severity, duration, 20 years, twenty years, economic downturn, historical economic data]
+    patterns: ['\b(20|twenty)\s+years?\b']
+    evidence_expected: "Time series of economic factors, identified downturn period(s) and severity assessment."
+  - id: DTLGD-RTS-03
+    topic: Multiple downturn periods
+    requirement: "Where several economic factors identify different downturn periods, the institution considers all of them and selects the most severe for the downturn estimate, with documented justification."
+    source: "Commission Delegated Regulation (EU) 2021/930; EBA/GL/2019/03"
+    keywords: [multiple downturn periods, most severe, several downturn periods, downturn period, selection]
+    evidence_expected: "Comparison of downturn LGD across candidate downturn periods."
+  - id: DTLGD-GL-01
+    topic: Impact analysis of the downturn
+    requirement: "The impact of the identified downturn period on realised LGDs (or CCFs) and on their drivers is analysed using the relevant data in that period."
+    source: "EBA/GL/2019/03, impact analysis of the downturn period"
+    keywords: [impact analysis, downturn impact, realised LGD, recovery rates, cure rates, time to recovery, collateral values]
+    evidence_expected: "Analysis of LGD components (cure rate, recoveries, time to recovery) during the downturn period."
+  - id: DTLGD-GL-02
+    topic: Observed impact approach
+    requirement: "Where sufficient loss data exist for the downturn period, downturn LGD is quantified from the observed impact in that period."
+    source: "EBA/GL/2019/03, downturn LGD estimation based on observed impact"
+    model_types: [lgd]
+    keywords: [observed impact, observed downturn, downturn LGD, loss data, realised LGD]
+    evidence_expected: "Downturn LGD derived from observed realised LGDs of the downturn period."
+  - id: DTLGD-GL-03
+    topic: Estimated impact approach
+    requirement: "Where loss data for the downturn period are insufficient, the downturn impact is estimated (e.g. via haircut or extrapolation approaches linking LGD or its components to economic factors), with the approach justified."
+    source: "EBA/GL/2019/03, downturn LGD estimation based on estimated impact"
+    model_types: [lgd]
+    keywords: [estimated impact, haircut approach, extrapolation, extrapolation approach, satellite model, regression on economic factors]
+    evidence_expected: "Description and justification of the haircut/extrapolation approach and its results."
+  - id: DTLGD-GL-04
+    topic: When impact can be neither observed nor estimated
+    requirement: "Where the downturn impact can be neither observed nor estimated, the institution applies the approach the Guidelines prescribe for that case (an add-on to the long-run average LGD) and documents why the other approaches are not feasible."
+    source: "EBA/GL/2019/03, downturn LGD estimation where impact cannot be observed or estimated"
+    model_types: [lgd]
+    keywords: [add-on, long-run average LGD, not possible to observe, neither observed nor estimated, 15 percentage points]
+    evidence_expected: "Justification that observed/estimated approaches are infeasible and the add-on applied."
+  - id: DTLGD-GL-05
+    topic: Reference value
+    requirement: "The downturn estimate is compared with the reference value specified in the Guidelines and any shortfall below it is justified."
+    source: "EBA/GL/2019/03, reference value"
+    model_types: [lgd]
+    keywords: [reference value, comparison, benchmark, justified, downturn LGD]
+    evidence_expected: "Computed reference value and comparison with the final downturn LGD."
+  - id: DTLGD-GL-06
+    topic: MoC on downturn estimates
+    requirement: "Margin of conservatism is applied to the downturn LGD for the deficiencies and estimation uncertainty specific to the downturn estimation."
+    source: "EBA/GL/2019/03; EBA/GL/2017/16 (margin of conservatism)"
+    model_types: [lgd]
+    keywords: [margin of conservatism, MoC, downturn, estimation error, uncertainty]
+    evidence_expected: "MoC components on the downturn estimate."
+  - id: DTLGD-GL-07
+    topic: Calibration segment level
+    requirement: "The downturn adjustment is performed at the level of calibration segments and the final downturn LGD is at least as conservative as the long-run average LGD."
+    source: "EBA/GL/2019/03; CRR Art. 181(1)(b)"
+    model_types: [lgd]
+    keywords: [calibration segment, long-run average, more conservative, downturn adjustment, final LGD]
+    evidence_expected: "Downturn adjustment by calibration segment and comparison with LRA LGD."
+  - id: DTLGD-CCF-01
+    topic: Downturn conversion factors
+    requirement: "For own CCF estimates, an economic downturn is identified and the downturn CCF is estimated where more conservative than the long-run average."
+    source: "CRR Art. 182(1)(b); Commission Delegated Regulation (EU) 2021/930"
+    model_types: [ead]
+    keywords: [downturn CCF, downturn conversion factor, economic downturn, conversion factor]
+    evidence_expected: "Downturn CCF analysis and estimate."

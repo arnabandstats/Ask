@@ -19,14 +19,16 @@ from ask import config
 from ask.analysis import compare as cmp
 from ask.analysis import data_query as dq
 from ask.analysis import runner
+from ask.agent import validation_tools as vt
 from ask.retrieval import search as rs
 from ask.sources import databricks
 from ask.sources.loaders import LoadError
 from ask.sources.paths import find_paths
 from ask.sources.registry import SourceRegistry
 
-TEXT_TOOLS = {"search", "grep", "read_file", "list_files", "compare", "overview"}
-DATA_TOOLS = {"data_overview", "query_data", "make_chart", "run_data_quality", "list_tests", "run_tests"}
+TEXT_TOOLS = {"search", "grep", "read_file", "list_files", "compare", "overview"} | vt.TEXT
+DATA_TOOLS = {"data_overview", "query_data", "make_chart", "run_data_quality", "list_tests",
+              "run_tests"} | vt.DATA
 
 
 @dataclass
@@ -39,6 +41,8 @@ class ToolContext:
     notes: list[str] = field(default_factory=list)        # analysis results kept for follow-ups
     used: set[str] = field(default_factory=set)
     sources_changed: bool = False
+    runs: list[str] = field(default_factory=list)            # validation run_ids produced this turn
+    judge_model: str | None = None                           # model for LLM-judge tests
 
 
 # ── artifacts ──────────────────────────────────────────────────────────────
@@ -328,6 +332,7 @@ SCHEMAS = [
         "(schema and statistics).",
         {"a": {"type": "string", "description": "File ('source:path') or source name."},
          "b": {"type": "string", "description": "File ('source:path') or source name."}}, ["a", "b"]),
+    *vt.schemas(_fn, _S, _SRC, _SHEET),
 ]
 
 _IMPL = {
@@ -335,6 +340,7 @@ _IMPL = {
     "read_file": t_read_file, "list_files": t_list_files, "overview": t_overview, "data_overview": t_data_overview,
     "query_data": t_query_data, "make_chart": t_make_chart, "run_data_quality": t_run_data_quality,
     "list_tests": t_list_tests, "run_tests": t_run_tests, "compare": t_compare,
+    **vt.IMPL,
 }
 
 
@@ -353,6 +359,8 @@ def dispatch(ctx: ToolContext, name: str, arguments: str) -> str:
         msg = exc.args[0] if isinstance(exc, KeyError) and exc.args else str(exc)
         return f"Error: {msg}"
     except Exception as exc:
+        if type(exc).__name__ in {"TableError", "DatabricksError"}:      # readable by design
+            return f"Error: {exc}"
         return f"Error: {type(exc).__name__}: {exc}\n{traceback.format_exc(limit=3)[-1500:]}"
     if len(out) > config.MAX_TOOL_OUTPUT_CHARS:
         out = out[: config.MAX_TOOL_OUTPUT_CHARS] + "\n… (output truncated; narrow the request)"

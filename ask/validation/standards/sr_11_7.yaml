@@ -1,0 +1,99 @@
+id: sr_11_7
+title: SR 11-7 Supervisory Guidance on Model Risk Management (US benchmark)
+version_note: >-
+  Based on the publicly available Federal Reserve SR Letter 11-7 / OCC Bulletin 2011-12, "Supervisory Guidance on
+  Model Risk Management" (April 2011). This is US supervisory guidance, NOT binding on EU institutions; it is used
+  here as an international benchmark for model risk management good practice. Paraphrased and cited by section.
+applies_to: [pd, lgd, ead, ifrs9, ews, satellite, var, pricing, ccr, aml, ml_classification, ml_regression, ml_unsupervised, genai, general]
+requirements:
+  - id: SR117-DEV-01
+    topic: Purpose and design
+    requirement: "The documentation states the model's purpose and shows that its design, theory and logic are consistent with that purpose and supported by published research and sound industry practice where relevant."
+    source: "SR 11-7, Section IV (model development, implementation and use)"
+    keywords: [purpose, design, theory, logic, research, industry practice, intended use]
+    evidence_expected: "Purpose statement and theoretical justification of the approach."
+  - id: SR117-DEV-02
+    topic: Data relevance and suitability
+    requirement: "Data and other information used are assessed for quality and relevance, with any proxies, adjustments or approximations justified and documented."
+    source: "SR 11-7, Section IV"
+    keywords: [data quality, relevance, proxies, adjustments, approximations, data suitability]
+    evidence_expected: "Data assessment and justification of proxies/adjustments."
+  - id: SR117-DEV-03
+    topic: Developmental testing
+    requirement: "Model development includes testing of accuracy, robustness and stability across a range of inputs, including sensitivity analysis and behaviour at boundary conditions."
+    source: "SR 11-7, Section IV"
+    keywords: [testing, accuracy, robustness, stability, sensitivity analysis, boundary conditions, stress]
+    evidence_expected: "Developmental test results incl. sensitivity and extreme inputs."
+  - id: SR117-DEV-04
+    topic: Limitations and assumptions
+    requirement: "Assumptions and limitations of the model are identified and documented, together with their potential impact."
+    source: "SR 11-7, Section IV"
+    keywords: [assumptions, limitations, weaknesses, impact, key assumptions]
+    evidence_expected: "Assumptions and limitations sections with impact assessment."
+  - id: SR117-USE-01
+    topic: Model use and uncertainty
+    requirement: "Model users understand the model's limitations and uncertainty, and adjustments or overlays applied to model outputs (conservatism, judgement) are documented and justified."
+    source: "SR 11-7, Section IV (model use)"
+    keywords: [users, uncertainty, overlay, adjustment, conservatism, judgement, model output]
+    evidence_expected: "User guidance and documented overlays."
+  - id: SR117-VAL-01
+    topic: Conceptual soundness
+    requirement: "Validation evaluates conceptual soundness: the quality of design and construction, developmental evidence, variable selection, assumptions, and comparison with alternative approaches."
+    source: "SR 11-7, Section V (model validation: evaluation of conceptual soundness)"
+    keywords: [conceptual soundness, developmental evidence, variable selection, alternative approaches, design, construction]
+    evidence_expected: "Validation review of conceptual soundness."
+  - id: SR117-VAL-02
+    topic: Ongoing monitoring
+    requirement: "Ongoing monitoring confirms the model is appropriately implemented and performing as intended, including process verification and benchmarking, and evaluates whether changes in products, exposures, clients or market conditions require adjustment or redevelopment."
+    source: "SR 11-7, Section V (ongoing monitoring)"
+    keywords: [ongoing monitoring, process verification, benchmarking, performing as intended, changes in conditions, monitoring]
+    evidence_expected: "Monitoring plan, metrics, frequency and results."
+  - id: SR117-VAL-03
+    topic: Outcomes analysis
+    requirement: "Outcomes analysis compares model outputs with actual outcomes (e.g. back-testing) at an appropriate frequency, with predefined measures to assess performance."
+    source: "SR 11-7, Section V (outcomes analysis)"
+    keywords: [outcomes analysis, back-testing, actual outcomes, predicted versus actual, performance measures]
+    evidence_expected: "Back-testing/outcomes analysis results."
+  - id: SR117-VAL-04
+    topic: Effective challenge and independence
+    requirement: "Validation provides effective challenge by staff with the competence, influence and independence from development to identify limitations and drive change."
+    source: "SR 11-7, Sections III and V"
+    keywords: [effective challenge, independence, independent validation, competence, influence]
+    evidence_expected: "Validator independence and evidence of challenge."
+  - id: SR117-VAL-05
+    topic: Periodic review
+    requirement: "Each model is reviewed periodically (at least annually, more often if warranted) to determine whether it is working as intended and whether existing validation activities are sufficient."
+    source: "SR 11-7, Section V"
+    keywords: [periodic review, annual review, at least annually, working as intended, revalidation]
+    patterns: ['at\s+least\s+(once\s+)?(a\s+year|annually)']
+    evidence_expected: "Most recent periodic review."
+  - id: SR117-VAL-06
+    topic: Vendor and third-party models
+    requirement: "Vendor or third-party models are validated using available developmental evidence, sensitivity analysis and benchmarking, and the bank obtains enough information to understand their design, data and limitations."
+    source: "SR 11-7, Section V (validation of vendor and other third-party products)"
+    keywords: [vendor, third-party, proprietary, developmental evidence, contingency plans, benchmarking]
+    evidence_expected: "Vendor documentation and the bank's validation of it."
+  - id: SR117-GOV-01
+    topic: Model inventory and policies
+    requirement: "The model is recorded in a comprehensive inventory and governed by board-approved model risk policies defining roles, responsibilities and validation requirements."
+    source: "SR 11-7, Section VI (governance, policies and controls)"
+    keywords: [inventory, model risk policy, policies, board, roles and responsibilities, governance]
+    evidence_expected: "Inventory entry and applicable policy."
+  - id: SR117-GOV-02
+    topic: Documentation sufficiency
+    requirement: "Documentation is detailed enough that parties unfamiliar with the model can understand how it operates, its limitations and its key assumptions."
+    source: "SR 11-7, Section VI (documentation)"
+    keywords: [documentation, unfamiliar, how the model operates, key assumptions, limitations, detailed]
+    evidence_expected: "Self-contained documentation package."
+  - id: SR117-GOV-03
+    topic: Internal audit
+    requirement: "Internal audit assesses the overall effectiveness of the model risk management framework, including whether validation is performed as required."
+    source: "SR 11-7, Section VI (internal audit)"
+    keywords: [internal audit, audit, effectiveness, framework, compliance with policy]
+    evidence_expected: "Audit coverage of MRM for this model."
+  - id: SR117-GOV-04
+    topic: Implementation controls
+    requirement: "Model implementation is tested and controlled (code review, reconciliation of implemented vs developed results, change control) so that the model operates as designed."
+    source: "SR 11-7, Sections IV-V (implementation; process verification)"
+    keywords: [implementation, code review, reconciliation, change control, user acceptance testing, UAT, production]
+    evidence_expected: "Implementation testing evidence."

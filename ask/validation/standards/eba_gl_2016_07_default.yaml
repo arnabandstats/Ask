@@ -1,0 +1,116 @@
+id: eba_gl_2016_07_default
+title: EBA Guidelines on the application of the definition of default (EBA/GL/2016/07)
+version_note: >-
+  Based on the publicly available EBA/GL/2016/07 (applicable from 1 January 2021) together with CRR Art. 178 and
+  Commission Delegated Regulation (EU) 2018/171 (materiality threshold). Paraphrased and cited by topic, not by
+  paragraph number. The thresholds quoted (1% NPV loss for distressed restructuring, 3-month and 1-year probation)
+  are those of the Guidelines; review against the current text before relying on it.
+applies_to: [pd, lgd, ead, ifrs9]
+requirements:
+  - id: DOD-DPD-01
+    topic: Days-past-due counting
+    requirement: "The days-past-due counter starts when the past-due amount exceeds the materiality threshold (both absolute and relative components) and the counting rules are documented."
+    source: "EBA/GL/2016/07, days past due criterion; CRR Art. 178(1)(b) and 178(2)"
+    keywords: [days past due, dpd counter, counting, materiality threshold, past due amount, 90 days]
+    patterns: ['\b90\s*(\+\s*)?(days?|dpd)\b']
+    evidence_expected: "DPD counting algorithm and when the counter starts and resets."
+  - id: DOD-DPD-02
+    topic: Materiality threshold
+    requirement: "The materiality threshold applied combines the absolute and the relative component set by the competent authority under Delegated Regulation (EU) 2018/171, for retail and non-retail exposures separately."
+    source: "Commission Delegated Regulation (EU) 2018/171; CRR Art. 178(2)(d)"
+    keywords: [materiality threshold, absolute component, relative component, EUR 100, EUR 500, 1%, retail, non-retail]
+    evidence_expected: "Threshold values by exposure type and their source."
+  - id: DOD-DPD-03
+    topic: Technical past-due situations
+    requirement: "Technical past-due situations (e.g. data or system errors, payment-system failures) are defined restrictively and not counted as defaults."
+    source: "EBA/GL/2016/07, technical past due situations"
+    keywords: [technical past due, technical default, system error, payment system, operational error]
+    evidence_expected: "Definition of technical past-due situations and their monitoring."
+  - id: DOD-DPD-04
+    topic: Changes in payment schedules
+    requirement: "The treatment of changes in payment schedules, payment holidays, set-offs and disputed amounts in the days-past-due counting is specified."
+    source: "EBA/GL/2016/07, days past due criterion"
+    keywords: [payment schedule, payment holiday, moratorium, set-off, disputed, suspension, restructured schedule]
+    evidence_expected: "Rules for moratoria, rescheduling and disputes in DPD counting."
+  - id: DOD-UTP-01
+    topic: Unlikeliness-to-pay indicators
+    requirement: "Indications of unlikeliness to pay listed in CRR Art. 178(3) and the Guidelines are implemented: non-accrued status, specific credit risk adjustments, sale of credit obligations with a material credit-related economic loss, distressed restructuring, bankruptcy or similar protection, and other indicators."
+    source: "CRR Art. 178(3); EBA/GL/2016/07, indications of unlikeliness to pay"
+    keywords: [unlikeliness to pay, unlikely to pay, non-accrued, specific credit risk adjustment, sale of credit obligation, distressed restructuring, bankruptcy]
+    evidence_expected: "Mapping of each UTP indicator to a data field or process."
+  - id: DOD-UTP-02
+    topic: Distressed restructuring threshold
+    requirement: "A distressed restructuring is treated as default when the diminished financial obligation (reduction in net present value of cash flows) exceeds 1%, computed as set out in the Guidelines."
+    source: "EBA/GL/2016/07, distressed restructuring"
+    keywords: [distressed restructuring, diminished financial obligation, net present value, 1%, forbearance, forborne]
+    patterns: ['\b1\s*%']
+    evidence_expected: "Diminished financial obligation calculation and the 1% threshold."
+  - id: DOD-UTP-03
+    topic: Sale of credit obligations
+    requirement: "Sales of credit obligations are assessed for a credit-related economic loss, and losses above the threshold defined by the institution in line with the Guidelines (no higher than 5%) are treated as default."
+    source: "EBA/GL/2016/07, sale of credit obligations"
+    keywords: [sale of credit obligation, credit-related economic loss, 5%, sale, disposal]
+    evidence_expected: "Threshold for credit-related economic loss on sale and its application."
+  - id: DOD-UTP-04
+    topic: Additional institution-specific indicators
+    requirement: "The institution specifies additional UTP indicators relevant to its portfolios (e.g. fraud, external delinquency data, breached covenants, significant decrease in collateral value) and the process for their assessment."
+    source: "EBA/GL/2016/07, other indications of unlikeliness to pay"
+    keywords: [fraud, covenant breach, external delinquency, credit bureau, collateral decrease, early warning, indicators]
+    evidence_expected: "List of additional UTP triggers, automatic or manual, and responsible units."
+  - id: DOD-APP-01
+    topic: Obligor vs facility level
+    requirement: "The level of application of the default definition (obligor level, or facility level for retail where chosen) is specified, including the treatment of contagion across facilities and joint obligations."
+    source: "EBA/GL/2016/07, application of the definition of default for retail exposures; joint credit obligations"
+    keywords: [obligor level, facility level, contagion, joint obligation, pulling effect, retail]
+    evidence_expected: "Level of application and contagion rules."
+  - id: DOD-APP-02
+    topic: Consistency across group and models
+    requirement: "The definition of default is applied consistently across the group, across exposure types and across the models and processes that use it (risk parameters, accounting, risk management)."
+    source: "EBA/GL/2016/07, consistency in the application of the definition of default"
+    keywords: [consistency, consistent application, group, subsidiaries, single definition, across models]
+    evidence_expected: "Statement of the single default definition and exceptions."
+  - id: DOD-APP-03
+    topic: External data consistency
+    requirement: "Where external or pooled data are used, the institution assesses the consistency of their default definition with its own and adjusts or applies MoC where differences exist."
+    source: "EBA/GL/2016/07, external data"
+    keywords: [external data, pooled data, consistency, default definition, adjustment, margin of conservatism]
+    evidence_expected: "Comparison of external default definitions with the institution's."
+  - id: DOD-RET-01
+    topic: Return to non-defaulted status
+    requirement: "An exposure returns to non-defaulted status only after a probation period of at least three months during which no default trigger applies, taking into account the obligor's behaviour and financial situation."
+    source: "EBA/GL/2016/07, criteria for the return to a non-defaulted status"
+    keywords: [probation period, three months, 3 months, cure, return to non-defaulted, exit from default]
+    patterns: ['\b(3|three)\s+months?\b']
+    evidence_expected: "Probation period and cure conditions."
+  - id: DOD-RET-02
+    topic: Probation for distressed restructuring
+    requirement: "For distressed restructuring, the probation period is at least one year from the latest of the restructuring, the end of any grace period and the date the obligor is classified as defaulted, with the conditions specified in the Guidelines."
+    source: "EBA/GL/2016/07, criteria for the return to a non-defaulted status (distressed restructuring)"
+    keywords: [distressed restructuring, one year, 1 year, probation, grace period, cure]
+    patterns: ['\b(1|one)\s+year\b']
+    evidence_expected: "Probation rules for restructured defaults."
+  - id: DOD-RET-03
+    topic: Monitoring of cures and re-defaults
+    requirement: "The institution monitors the effectiveness of its return-to-non-default criteria, including re-default rates of cured exposures."
+    source: "EBA/GL/2016/07, criteria for the return to a non-defaulted status"
+    keywords: [re-default, redefault, multiple defaults, cure rate, monitoring, effectiveness]
+    evidence_expected: "Re-default analysis of cured exposures."
+  - id: DOD-GOV-01
+    topic: Documentation and timeliness
+    requirement: "The default definition, its triggers and the automatic and manual processes for identifying defaults are documented, and defaults are identified in a timely manner."
+    source: "EBA/GL/2016/07, policies and procedures; internal governance"
+    keywords: [default identification, automatic, manual, timely, register, triggers, policies and procedures, default detection]
+    evidence_expected: "Process description, frequency of default identification and controls."
+  - id: DOD-GOV-02
+    topic: Impact on risk parameters
+    requirement: "When the default definition changes, the effect on the rating systems and risk parameter estimates is assessed and the estimation data are adjusted or MoC is applied."
+    source: "EBA/GL/2016/07, timeline and implementation; CRR Art. 179; ECB Guide to internal models (credit risk, definition of default)"
+    keywords: [new definition of default, change in definition, impact assessment, adjustment of data, recalibration, margin of conservatism]
+    evidence_expected: "Impact analysis of the default definition change on estimates."
+  - id: DOD-IFRS-01
+    topic: Alignment with accounting default
+    requirement: "Differences between the regulatory default definition and the definition used for accounting (IFRS 9 credit-impaired / stage 3) and for non-performing exposures are identified and explained."
+    source: "EBA/GL/2016/07, consistency; IFRS 9 B5.5.37"
+    model_types: [ifrs9, pd]
+    keywords: [credit-impaired, stage 3, non-performing, NPE, accounting definition, alignment]
+    evidence_expected: "Reconciliation of regulatory default, stage 3 and NPE definitions."

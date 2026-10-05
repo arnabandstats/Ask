@@ -1,0 +1,221 @@
+id: eba_gl_2017_16_pd_lgd
+title: EBA Guidelines on PD estimation, LGD estimation and treatment of defaulted exposures (EBA/GL/2017/16)
+version_note: >-
+  Based on the publicly available EBA/GL/2017/16 (final report, November 2017; applicable to IRB rating systems
+  since 1 January 2021). Paraphrased; cited by chapter/topic rather than paragraph number. The downturn sections
+  of these Guidelines were complemented by EBA/GL/2019/03 and the RTS on economic downturn (Delegated Regulation
+  (EU) 2021/930). Review against the current text before relying on it.
+applies_to: [pd, lgd]
+requirements:
+  # ── general estimation requirements ──────────────────────────────────────
+  - id: EBA1716-GEN-01
+    topic: Range of application
+    requirement: "The documentation specifies the range of application of the rating system (the types of exposures covered) and the policies for assigning exposures to it."
+    source: "EBA/GL/2017/16, general estimation requirements (range of application of rating systems)"
+    keywords: [range of application, scope of application, model scope, exposures covered, perimeter, segmentation]
+    evidence_expected: "Precise scope definition: exposure classes, segments, products, geographies and exclusions."
+  - id: EBA1716-GEN-02
+    topic: Data requirements and data quality
+    requirement: "The data used for model development and calibration are checked for quality (completeness, accuracy, consistency, timeliness, uniqueness, validity, traceability), and data cleansing and exclusions are documented with their impact."
+    source: "EBA/GL/2017/16, general estimation requirements (data requirements); data-quality dimensions as used in the ECB Guide to internal models (credit risk, data maintenance)"
+    keywords: [data quality, completeness, accuracy, consistency, data cleansing, exclusions, traceability, data checks]
+    evidence_expected: "Data quality checks, exclusion waterfall and impact of each exclusion."
+  - id: EBA1716-GEN-03
+    topic: Representativeness for model development
+    requirement: "Representativeness of the development data is analysed with respect to the scope of application, the definition of default, the distribution of relevant risk characteristics, and lending standards and recovery policies."
+    source: "EBA/GL/2017/16, general estimation requirements (representativeness of data)"
+    keywords: [representativeness, representative, definition of default, lending standards, recovery policies, distribution of risk characteristics, scope of application]
+    evidence_expected: "Representativeness analysis on the four dimensions, with conclusions and mitigation where not representative."
+  - id: EBA1716-GEN-04
+    topic: Human judgement in estimation
+    requirement: "Human judgement applied in model development and calibration is documented, its appropriateness is assessed, and its effect on the estimates is analysed."
+    source: "EBA/GL/2017/16, general estimation requirements (human judgement in the estimation of risk parameters)"
+    keywords: [human judgement, human judgment, expert judgement, expert judgment, qualitative adjustment, judgemental]
+    evidence_expected: "List of judgement-based choices, their rationale and impact."
+  - id: EBA1716-GEN-05
+    topic: Identification of deficiencies
+    requirement: "All identified data and methodological deficiencies, and relevant changes to underlying processes, policies or the economic environment, are listed and analysed for their effect on the estimates."
+    source: "EBA/GL/2017/16, margin of conservatism (identification of deficiencies)"
+    keywords: [deficiencies, deficiency, triggers, data deficiencies, methodological deficiencies, changes to policies]
+    evidence_expected: "Register of deficiencies with their categorisation and estimated impact."
+  - id: EBA1716-MOC-01
+    topic: MoC categories A, B, C
+    requirement: "The margin of conservatism is quantified for category A (identified data and methodological deficiencies), category B (relevant changes to underwriting standards, risk appetite, collection and recovery policies or other sources of additional uncertainty) and category C (general estimation error)."
+    source: "EBA/GL/2017/16, margin of conservatism"
+    keywords: [margin of conservatism, category A, category B, category C, general estimation error, MoC]
+    patterns: ['categor(y|ies)\s+[ABC]\b', '\bMoC\b']
+    evidence_expected: "MoC quantification per category with methods and results."
+  - id: EBA1716-MOC-02
+    topic: MoC aggregation and application
+    requirement: "The final MoC is the aggregation of the category-level components, is added to the best estimate of the risk parameter, and is monitored over time."
+    source: "EBA/GL/2017/16, margin of conservatism"
+    keywords: [margin of conservatism, best estimate, aggregation, final MoC, add-on, risk parameter]
+    evidence_expected: "Formula showing best estimate + MoC = final parameter, and MoC time series."
+  - id: EBA1716-MOC-03
+    topic: MoC not a substitute for remediation
+    requirement: "Deficiencies covered by MoC are subject to a remediation plan; MoC does not replace correcting the deficiency."
+    source: "EBA/GL/2017/16, margin of conservatism"
+    keywords: [remediation, action plan, correct the deficiency, remedy, temporary, deficiency]
+    evidence_expected: "Remediation plans and timelines for MoC-covered deficiencies."
+  # ── PD: model development ────────────────────────────────────────────────
+  - id: EBA1716-PD-01
+    topic: Risk driver selection
+    requirement: "The selection of risk drivers and rating criteria is documented with statistical analysis and business rationale, and covers all relevant information including obligor and, where relevant, transaction characteristics."
+    source: "EBA/GL/2017/16, PD estimation (model development: risk drivers and rating criteria)"
+    model_types: [pd]
+    keywords: [risk drivers, rating criteria, variable selection, univariate, multivariate, business rationale, shortlist]
+    evidence_expected: "Long-list to short-list process, univariate/multivariate results and expert review."
+  - id: EBA1716-PD-02
+    topic: Rating philosophy
+    requirement: "The rating philosophy (degree of point-in-time versus through-the-cycle) is specified and its effect on rating migrations and default rates per grade is understood and documented."
+    source: "EBA/GL/2017/16, PD estimation (rating philosophy)"
+    model_types: [pd]
+    keywords: [rating philosophy, point-in-time, through-the-cycle, PIT, TTC, hybrid, rating migrations, cyclicality]
+    evidence_expected: "Stated rating philosophy and supporting analysis (migration and default-rate volatility)."
+  - id: EBA1716-PD-03
+    topic: Rating scale structure
+    requirement: "The structure of the rating scale and the grade boundaries are justified, avoiding excessive concentration and ensuring sufficient differentiation."
+    source: "EBA/GL/2017/16, PD estimation (structure of rating systems)"
+    model_types: [pd]
+    keywords: [rating scale, master scale, grade boundaries, concentration, differentiation, number of grades]
+    evidence_expected: "Master scale with boundaries and concentration analysis."
+  - id: EBA1716-PD-04
+    topic: Treatment of missing values
+    requirement: "The treatment of missing values in risk drivers is documented and justified."
+    source: "EBA/GL/2017/16, PD estimation (model development)"
+    model_types: [pd]
+    keywords: [missing values, missing data, imputation, default value, missing information]
+    evidence_expected: "Missing-value rates by variable and the imputation rule."
+  # ── PD: calibration ──────────────────────────────────────────────────────
+  - id: EBA1716-PD-05
+    topic: One-year default rate computation
+    requirement: "The one-year default rate is computed with a denominator of obligors not in default at the start of the one-year observation period and a numerator of those obligors that defaulted during that period."
+    source: "EBA/GL/2017/16, PD calibration (calculation of one-year default rates)"
+    model_types: [pd]
+    keywords: [one-year default rate, denominator, numerator, non-defaulted obligors, beginning of the period, cohort]
+    patterns: ['one[\s-]+year\s+default\s+rate']
+    evidence_expected: "Default-rate formula, cohort dates and treatment of obligors leaving the portfolio."
+  - id: EBA1716-PD-06
+    topic: Observed average default rate
+    requirement: "The observed average default rate is the arithmetic average of one-year default rates over the historical observation period, with the choice between overlapping and non-overlapping windows justified."
+    source: "EBA/GL/2017/16, PD calibration (observed average default rates)"
+    model_types: [pd]
+    keywords: [observed average default rate, arithmetic average, overlapping windows, non-overlapping, quarterly reference dates]
+    evidence_expected: "Average default-rate computation and the window choice."
+  - id: EBA1716-PD-07
+    topic: Long-run average default rate
+    requirement: "The long-run average default rate reflects the likely range of variability of default rates; where the historical observation period is not representative of that range, the long-run average is adjusted."
+    source: "EBA/GL/2017/16, PD calibration (long-run average default rate)"
+    model_types: [pd]
+    keywords: [long-run average, likely range of variability, good and bad years, adjustment, economic cycle, LRA]
+    patterns: ['long[\s-]+run\s+average']
+    evidence_expected: "LRA value, assessment of the cycle coverage and any adjustment with its rationale."
+  - id: EBA1716-PD-08
+    topic: Calibration method and test
+    requirement: "Calibration to the long-run average default rate is performed at the level of calibration segments, and the institution tests the calibration at grade level (or for each pool/score) after calibration."
+    source: "EBA/GL/2017/16, PD calibration"
+    model_types: [pd]
+    keywords: [calibration, calibration segment, calibration test, grade level, binomial test, calibration curve]
+    evidence_expected: "Calibration method, calibration segments and grade-level calibration test results."
+  - id: EBA1716-PD-09
+    topic: Representativeness for calibration
+    requirement: "The data used for calibration are representative of the current portfolio, in particular with respect to the definition of default and the economic conditions covered."
+    source: "EBA/GL/2017/16, PD calibration; general estimation requirements (representativeness)"
+    model_types: [pd]
+    keywords: [representativeness, calibration sample, current portfolio, definition of default, economic conditions]
+    evidence_expected: "Representativeness analysis of the calibration sample."
+  # ── LGD ──────────────────────────────────────────────────────────────────
+  - id: EBA1716-LGD-01
+    topic: Realised LGD definition
+    requirement: "Realised LGD is computed as the economic loss divided by the outstanding amount at default, including additional drawings after default, all recoveries and all direct and indirect costs, discounted to the date of default."
+    source: "EBA/GL/2017/16, LGD estimation (realised LGD and economic loss)"
+    model_types: [lgd]
+    keywords: [realised LGD, realized LGD, economic loss, outstanding amount at default, additional drawings, recoveries, costs]
+    evidence_expected: "Realised LGD formula with each component and data sources."
+  - id: EBA1716-LGD-02
+    topic: Discount rate
+    requirement: "Recoveries and costs are discounted to the date of default using the primary interbank offered rate applicable at the time of default increased by an add-on of 5 percentage points (or the equivalent specified in the Guidelines)."
+    source: "EBA/GL/2017/16, LGD estimation (discounting rate)"
+    model_types: [lgd]
+    keywords: [discount rate, discounting, interbank offered rate, EURIBOR, add-on, 5%, 5 percentage points]
+    patterns: ['\b5\s*(%|percentage\s+points?|pp)']
+    evidence_expected: "Discount rate definition and the add-on applied."
+  - id: EBA1716-LGD-03
+    topic: Direct and indirect costs
+    requirement: "Material direct and indirect costs related to the recovery process are included in economic loss, with an allocation method for indirect costs that is documented."
+    source: "EBA/GL/2017/16, LGD estimation (direct and indirect costs)"
+    model_types: [lgd]
+    keywords: [direct costs, indirect costs, cost allocation, workout costs, recovery costs, internal costs]
+    evidence_expected: "Cost data sources and the indirect cost allocation key."
+  - id: EBA1716-LGD-04
+    topic: Incomplete recovery processes
+    requirement: "Defaults with incomplete recovery processes are included in the LGD estimation, with future recoveries and costs estimated, and the maximum period of the recovery process is specified and justified."
+    source: "EBA/GL/2017/16, LGD estimation (incomplete recovery processes)"
+    model_types: [lgd]
+    keywords: [incomplete recovery, open cases, unresolved, incomplete workout, maximum period of recovery, future recoveries]
+    evidence_expected: "Share of incomplete cases, method to estimate their future recoveries, and the max recovery period."
+  - id: EBA1716-LGD-05
+    topic: Long-run average LGD
+    requirement: "The long-run average LGD is the arithmetic average of realised LGDs over the historical observation period, weighted by the number of defaults, using all defaults in that period."
+    source: "EBA/GL/2017/16, LGD estimation (long-run average LGD)"
+    model_types: [lgd]
+    keywords: [long-run average LGD, number of defaults, default-weighted, arithmetic average, all defaults, historical observation period]
+    patterns: ['default[\s-]+weighted', 'long[\s-]+run\s+average']
+    evidence_expected: "LRA LGD computation and the weighting used."
+  - id: EBA1716-LGD-06
+    topic: Cured and multiple defaults
+    requirement: "The treatment of cured defaults and of multiple defaults of the same obligor in the LGD reference data is specified and justified."
+    source: "EBA/GL/2017/16, LGD estimation"
+    model_types: [lgd]
+    keywords: [cure, cured, cure rate, multiple defaults, re-default, return to performing]
+    evidence_expected: "Cure definition, cure rates and treatment of re-defaults in the data."
+  - id: EBA1716-LGD-07
+    topic: LGD risk drivers and collateral
+    requirement: "LGD risk drivers (including collateral type, value and coverage, seniority, and recovery process characteristics) are selected with documented analysis, and collateral values used are consistent with the institution's collateral valuation policies."
+    source: "EBA/GL/2017/16, LGD estimation (model development)"
+    model_types: [lgd]
+    keywords: [collateral, LTV, loan-to-value, seniority, risk drivers, recovery process, haircut]
+    evidence_expected: "LGD risk drivers selection analysis and collateral data used."
+  - id: EBA1716-LGD-08
+    topic: Downturn LGD (via EBA/GL/2019/03)
+    requirement: "The LGD estimate is adjusted to reflect an economic downturn where more conservative than the long-run average, following the downturn-specific Guidelines."
+    source: "EBA/GL/2017/16 as complemented by EBA/GL/2019/03"
+    model_types: [lgd]
+    keywords: [downturn, downturn LGD, economic downturn, downturn adjustment]
+    evidence_expected: "Downturn LGD estimate and reference to the downturn methodology."
+  # ── defaulted exposures ──────────────────────────────────────────────────
+  - id: EBA1716-DEF-01
+    topic: ELBE
+    requirement: "ELBE reflects current economic circumstances and the exposure's status (including time in default and recoveries realised so far), and any difference from specific credit risk adjustments is analysed and justified."
+    source: "EBA/GL/2017/16, treatment of defaulted exposures (ELBE)"
+    model_types: [lgd]
+    keywords: [ELBE, best estimate of expected loss, current economic circumstances, time in default, specific credit risk adjustments, provisions]
+    evidence_expected: "ELBE methodology, reference dates and comparison with specific credit risk adjustments."
+  - id: EBA1716-DEF-02
+    topic: LGD in-default
+    requirement: "LGD in-default is at least equal to ELBE and the add-on reflects the possible additional unexpected losses during the recovery period."
+    source: "EBA/GL/2017/16, treatment of defaulted exposures (LGD in-default)"
+    model_types: [lgd]
+    keywords: [LGD in-default, unexpected loss, add-on, ELBE, recovery period, reference dates]
+    patterns: ['LGD[\s-]+in[\s-]+default']
+    evidence_expected: "LGD in-default methodology and the ELBE add-on."
+  # ── application and review ───────────────────────────────────────────────
+  - id: EBA1716-APP-01
+    topic: Overrides and human judgement in application
+    requirement: "Overrides in the application of the rating system are governed by policies, their frequency and direction are monitored, and the performance of overridden ratings is analysed."
+    source: "EBA/GL/2017/16, application of risk parameters (overrides)"
+    keywords: [override, override rate, override policy, downgrade, upgrade, performance of overrides]
+    evidence_expected: "Override statistics and analysis."
+  - id: EBA1716-APP-02
+    topic: Review of estimates
+    requirement: "Risk parameter estimates are reviewed at least annually, covering performance (discriminatory power, calibration/back-testing), representativeness, stability and changes in the economic environment, with the review results driving recalibration or redevelopment where needed."
+    source: "EBA/GL/2017/16, review of estimates; CRR Art. 179"
+    keywords: [review of estimates, annual review, back-testing, discriminatory power, recalibration, redevelopment, performance]
+    patterns: ['at\s+least\s+(once\s+)?(a\s+year|annually)']
+    evidence_expected: "Most recent annual review and its conclusions."
+  - id: EBA1716-APP-03
+    topic: Rating system documentation of calibration choices
+    requirement: "The documentation records the calibration choices (calibration segments, target, method, MoC) so that the final estimates can be reproduced."
+    source: "EBA/GL/2017/16, PD calibration and LGD calibration"
+    keywords: [calibration, reproduce, calibration segment, target, method, final estimate]
+    evidence_expected: "Calibration documentation sufficient to reproduce the final parameters."

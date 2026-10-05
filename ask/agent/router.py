@@ -79,12 +79,12 @@ def _run_loop(conv: llm_call.Conversation, ctx: ToolContext, max_steps: int) -> 
 
 def answer(text: str, reg: SourceRegistry, history: list[dict], *, model: str,
            verify: bool, output_dir: Path, status: Callable[[str], None],
-           reasoning_effort: str | None = None) -> Turn:
+           reasoning_effort: str | None = None, judge_model: str | None = None) -> Turn:
     fast = _fast_load(text, reg)
     if fast is not None:
         return fast
 
-    ctx = ToolContext(registry=reg, output_dir=output_dir, status=status)
+    ctx = ToolContext(registry=reg, output_dir=output_dir, status=status, judge_model=judge_model)
     system = prompts.SYSTEM.format(name=preferences.tool_name(), sources=reg.describe())
     conv = llm_call.Conversation(system,
                                  history[-config.HISTORY_TURNS * 2:], text, model, reasoning_effort)
@@ -93,6 +93,8 @@ def answer(text: str, reg: SourceRegistry, history: list[dict], *, model: str,
     content = _run_loop(conv, ctx, config.MAX_AGENT_STEPS)
 
     meta: dict = {"tools": sorted(ctx.used), "model": model, "api": llm_call.api_in_use()}
+    if ctx.runs:
+        meta["test_runs"] = list(dict.fromkeys(ctx.runs))
     # With a repo/docs loaded, any answer that isn't about data or explicitly labelled
     # general knowledge must be grounded: an uncited answer goes back for repair.
     text_loaded = bool(reg.of_kind("repo", "docs"))
@@ -102,7 +104,9 @@ def answer(text: str, reg: SourceRegistry, history: list[dict], *, model: str,
                                   or faithfulness.CITATION.search(content))
 
     def problems(rep: faithfulness.Report | None) -> list[str]:
-        return (rep.problems if rep else []) + faithfulness.check_visual_claims(content, ctx.artifacts)
+        return ((rep.problems if rep else []) + faithfulness.check_visual_claims(content, ctx.artifacts)
+                + faithfulness.check_test_citations(content, ctx.runs)
+                + faithfulness.check_findings(content))
 
     if check_citations:
         status("Checking citations against the source")
