@@ -10,6 +10,7 @@
 ask_data/
 validator_cache/
 validator_output/
+ask-streamlit.log
 
 # ── Python / tooling ───────────────────────────────────────
 __pycache__/
