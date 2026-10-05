@@ -288,14 +288,14 @@ with each question.
 
 ## Running on Databricks
 
-### 1. Store the API key as a secret (once)
+### 1. Store the Azure OpenAI key as a secret (once)
 
-From a terminal with the [Databricks CLI](https://docs.databricks.com/dev-tools/cli/)
-signed in (`databricks auth login --host https://<workspace>.cloud.databricks.com`):
+The launcher reads the key from a Databricks secret (default scope `OneLab-SecretScope`).
+If it isn't there yet, from a terminal with the
+[Databricks CLI](https://docs.databricks.com/dev-tools/cli/) signed in:
 
 ```bash
-databricks secrets create-scope ask
-databricks secrets put-secret ask openai-api-key      # prompts for the value
+databricks secrets put-secret OneLab-SecretScope <key-name>      # prompts for the value
 ```
 
 Never paste the key into a notebook cell: notebooks keep a revision history.
@@ -303,22 +303,28 @@ Never paste the key into a notebook cell: notebooks keep a revision history.
 ### 2. Run the launcher notebook
 
 Clone this repository as a **Git folder**, open `databricks_launcher.py` (repo root, next
-to `app.py`) and click **Run all**. It first checks the secret, then chooses what works on
-the compute it is attached to:
+to `app.py`) and fill in the **Settings** cell:
 
-| Attached to | What the notebook does |
+| Setting | Meaning |
 |---|---|
-| **Serverless**, or a cluster in **Shared/Standard** access mode | Deploys a **Databricks App** named `ask-<your user>`: creates or updates it, attaches the secret as the app resource `openai-api-key`, deploys this folder (using `app.yaml`), and prints the app URL. Needs Databricks Apps enabled in the workspace. |
-| A cluster in **Dedicated (single user)** access mode | Installs the requirements and runs the app on the cluster's driver, with an **Open the app** link through the driver proxy. |
+| `PORT` | Port on the driver (default `8502`) |
+| `SECRET_SCOPE`, `AZURE_KEY_SECRET` | Secret scope and key name holding the Azure OpenAI key |
+| `AZURE_ENDPOINT`, `AZURE_API_VERSION` | Your Azure OpenAI endpoint and API version |
+| `AZURE_DEPLOYMENT`, `AZURE_DEEP_DEPLOYMENT` | Deployment names for normal and *Think deeper* answers |
+| `DATA_DIR`, `BACKUP_DIR` | Where chats are kept on the driver; optional Volume folder to back them up |
 
-Change the **Run mode** widget to force `databricks_app` or `cluster`. After a **Pull**,
-**Run all** again to redeploy.
+Then **Run all**. The notebook installs `requirements.txt`, starts the app on the cluster's
+driver and shows an **Open Ask** link through the driver proxy
+(`https://<workspace>/driver-proxy/o/<workspace-id>/<cluster-id>/<port>/`). The cluster
+must stay up while the app is used. Rerunning stops the previous app first; the **Log**
+cell shows the app's output and **Stop Ask** stops it.
 
-**Sharing the app:** Compute → Apps → your app → Permissions → **Can use**.
+The driver-proxy link needs a classic cluster; Databricks blocks it on serverless and on
+some Shared/Standard clusters (*Traffic on this port is not permitted*).
 
-**Setting the app up by hand instead:** Compute → Apps → Create app → custom app; add an
-App resource of type **Secret** (scope `ask`, key `openai-api-key`, permission *Can read*,
-resource key `openai-api-key`); deploy this folder.
+**Deploying as a Databricks App instead:** Compute → Apps → Create app → custom app; add an
+App resource of type **Secret** (permission *Can read*, resource key `openai-api-key`);
+deploy this folder. `app.yaml` holds the app's command and environment.
 
 ### 3. Load Databricks folders and files in the chat
 
@@ -342,10 +348,9 @@ On a laptop, the same paths work once the Databricks CLI is signed in.
 ### Where chats live on Databricks
 
 - **Databricks App:** `/tmp/ask_data` inside the app; reset when the app is redeployed.
-- **Cluster mode:** the driver's local disk (`/local_disk0/ask_data`, or `/tmp/ask_data`
-  if that isn't writable), wiped when the cluster terminates. Set the **Backup folder**
-  widget to a Volume path to restore chats on start and save them on **Stop the app** or
-  **Back up chats**.
+- **Launcher notebook:** the driver's local disk (`/local_disk0/ask_data`, or `/tmp/ask_data`
+  if that isn't writable), wiped when the cluster terminates. Set `BACKUP_DIR` to a Volume
+  path to restore chats on start and save them on **Stop Ask**.
 
 ---
 
@@ -374,7 +379,7 @@ On a laptop, the same paths work once the Databricks CLI is signed in.
 ```
 app.py                       Streamlit entry point (layout, chat loop)
 app.yaml                     Databricks Apps configuration
-databricks_launcher.py       Databricks notebook: deploy as an App or run on a cluster
+databricks_launcher.py       Databricks notebook: run the app on a cluster
 requirements.txt
 .env.example                 settings template (copy to .env)
 ask/
@@ -428,7 +433,7 @@ client, and every test gets its own temporary data folder.
 | `test_data_query.py`, `test_compare.py` | Pandas results and 20+ blocked unsafe patterns; every comparison type |
 | `test_builtin_tests.py` | **All 22 built-in tests** run on their own with exact expected outputs; every statistic checked against scikit-learn / statsmodels or a hand-computed answer |
 | `test_runner.py` | Test catalogue, input validation, data quality |
-| `test_databricks_paths.py`, `test_databricks_launcher.py` | Databricks paths and permissions; the launcher's secret check, run-mode choice and App deployment |
+| `test_databricks_paths.py`, `test_databricks_launcher.py` | Databricks paths and permissions; the launcher's secret check, link and start/stop cells |
 | `test_store.py`, `test_preferences.py`, `test_render.py` | Chat storage, tool name, message rendering |
 | `test_verbatim.py` | `client_create()`, the test engine and the data-quality checks are pinned by SHA-256 and must not change |
 | `test_no_secrets.py` | No secrets in any committable file |
@@ -439,12 +444,12 @@ client, and every test gets its own temporary data folder.
 
 | Symptom | Cause and fix |
 |---|---|
-| `OPENAI_API_KEY not found` | No `.env` (locally) or secret (Databricks). Create `.env` from `.env.example`, or check the secret scope/key widgets. |
+| `OPENAI_API_KEY not found` | No `.env` (locally) or secret (Databricks). Create `.env` from `.env.example`, or check `SECRET_SCOPE` / `AZURE_KEY_SECRET` in the launcher. |
 | "Path not found" for a local path | Check the spelling; put paths with spaces in quotes. |
 | "That is a browser link…" | Paste the path (⋮ → Copy path), not the Databricks URL. |
 | "…does not exist, or the app's service principal can't see it" | Share the folder with the app's service principal (**Can Read**), or `READ VOLUME` on a Volume. |
-| Databricks link says *Traffic on this port is not permitted* | The notebook is on serverless or a Shared/Standard cluster, where the driver proxy is blocked. Use **Run mode = auto** (deploys a Databricks App) or a Dedicated cluster. |
-| `PermissionError … /local_disk0` | Shared/Standard cluster; the launcher now falls back to `/tmp/ask_data` automatically. |
+| Databricks link says *Traffic on this port is not permitted* | The notebook is on serverless or a Shared/Standard cluster, where the driver proxy is blocked. Use a Dedicated (single user) cluster, or deploy as a Databricks App. |
+| `PermissionError … /local_disk0` | `/local_disk0` is read-only on this cluster; the launcher falls back to `/tmp/ask_data` automatically. |
 | Pull in Databricks shows a merge conflict on `databricks_launcher.py` | Running the notebook on serverless adds an environment header to it. Abort, discard local changes to that file, then Pull. |
 | "Function tools with reasoning_effort are not supported…" | Fixed by the Responses API; on the Chat Completions fallback the app retries with reasoning off automatically. |
 | Answer shows *⚠ … could not be verified* | The model cited lines it hadn't read, or quoted something not in the file. Ask it to re-check, or read the Sources panel. |
