@@ -36,8 +36,8 @@ class TestStartup:
         assert len(at.chat_input) == 1
 
     def test_sidebar_is_minimal(self, at):
-        labels = [b.label for b in at.sidebar.button]
-        assert labels == ["＋", "⚙  Settings"]          # no chats yet: just New chat + Settings
+        # no chats and no notifications yet: the top bar's New chat and Settings icons only
+        assert [b.key for b in at.sidebar.button] == ["new_chat", "open_settings"]
 
     def test_browser_tab_uses_tool_name_and_no_logo(self, monkeypatch):
         import streamlit as st

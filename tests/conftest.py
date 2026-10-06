@@ -29,6 +29,7 @@ def isolated_data_dir(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "DATA_DIR", data)
     monkeypatch.setattr(config, "DB_PATH", data / "chats.db")
     monkeypatch.setattr(config, "OUTPUT_DIR", data / "outputs")
+    monkeypatch.setattr(config, "READ_IMAGES", False)    # vision tests switch it on with a fake model
     loaders._TEXT_CACHE.clear()
     from ask.memory import store
     store.use_folder(None)                 # start every test at the default chat history folder

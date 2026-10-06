@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Callable
 
 from ask import config, preferences
-from ask.agent import faithfulness, llm_call, prompts
+from ask.agent import faithfulness, guardrails, llm_call, prompts
 from ask.agent.tools import DATA_TOOLS, SCHEMAS, TEXT_TOOLS, ToolContext, dispatch
 from ask.sources import databricks
 from ask.sources.loaders import LoadError
@@ -77,15 +77,43 @@ def _run_loop(conv: llm_call.Conversation, ctx: ToolContext, max_steps: int) -> 
     return conv.step(None).text
 
 
+def _guard_answer(content: str, question: str, conv: llm_call.Conversation, ctx: ToolContext,
+                  system: str, model: str, use_llm: bool) -> str:
+    """Leak check, bias scan and (optionally) the LLM review; a flagged answer is rewritten once."""
+    if guardrails.leaked(content, system):
+        ctx.guard.append("An answer that would have revealed internal instructions was withheld.")
+        return guardrails.LEAK_REPLY
+    issues = [f"generalisation about a group: “{s}”" for s in guardrails.bias_hits(content)]
+    if use_llm and content:
+        ctx.status("Checking the answer against the guardrails")
+        issues += guardrails.llm_check(question, content, model)
+    if not issues:
+        return content
+    ctx.status("Rewriting the answer to meet the guardrails")
+    ctx.guard.append("The answer was rewritten by the guardrails: " + "; ".join(issues))
+    conv.add_assistant(content)
+    conv.add_user(guardrails.REWRITE.format(issues="\n".join(f"- {i}" for i in issues)))
+    revised = conv.step(None).text or content
+    if guardrails.leaked(revised, system):
+        return guardrails.LEAK_REPLY
+    return revised
+
+
 def answer(text: str, reg: SourceRegistry, history: list[dict], *, model: str,
            verify: bool, output_dir: Path, status: Callable[[str], None],
-           reasoning_effort: str | None = None, judge_model: str | None = None) -> Turn:
+           reasoning_effort: str | None = None, judge_model: str | None = None,
+           guard_llm: bool = False) -> Turn:
     fast = _fast_load(text, reg)
     if fast is not None:
         return fast
 
     ctx = ToolContext(registry=reg, output_dir=output_dir, status=status, judge_model=judge_model)
-    system = prompts.SYSTEM.format(name=preferences.tool_name(), sources=reg.describe())
+    system = prompts.SYSTEM.format(name=preferences.tool_name(), sources=reg.describe()) + guardrails.rules()
+    hits = guardrails.scan(text)
+    if hits:
+        system += guardrails.input_notice(hits)
+        ctx.guard.append(f"Your message looks like a prompt-injection attempt ({', '.join(hits)}); "
+                         "the assistant kept its role and rules.")
     conv = llm_call.Conversation(system,
                                  history[-config.HISTORY_TURNS * 2:], text, model, reasoning_effort)
 
@@ -121,6 +149,9 @@ def answer(text: str, reg: SourceRegistry, history: list[dict], *, model: str,
             content = revised
             rep = faithfulness.verify(content, reg, ctx.evidence, grounded) if check_citations else None
         meta["repaired"] = True
+    content = _guard_answer(content, text, conv, ctx, system, model, guard_llm)
+    if ctx.guard:
+        meta["guard"] = list(dict.fromkeys(ctx.guard))
     if rep is not None:
         meta["verification"] = rep.to_meta()
     if ctx.notes:

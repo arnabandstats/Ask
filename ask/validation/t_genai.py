@@ -1551,8 +1551,10 @@ class _Judge:
         """ask() for each dict of values, in parallel, results in input order."""
         if len(values) <= 1:
             return [self.ask(name, **v) for v in values]
+        from ask.usage import in_context          # worker threads report tokens to this session
+        ask = in_context(lambda v: self.ask(name, **v))
         with ThreadPoolExecutor(max_workers=min(workers, len(values))) as pool:
-            return list(pool.map(lambda v: self.ask(name, **v), values))
+            return list(pool.map(ask, values))
 
     def check_alive(self):
         if self.calls and self.errors == self.calls:

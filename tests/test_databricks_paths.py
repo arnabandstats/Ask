@@ -121,7 +121,10 @@ class TestWorkspaceFolder:
         assert src.name == "MLOps" and src.path == "/Workspace/Users/me/MLOps" and src.kind == "repo"
         assert set(src.files) == {"src/train.py", "notebooks/01_train.py", "README.md"}
         assert src.files["src/train.py"] == TRAIN and "print('train')" in src.files["notebooks/01_train.py"]
-        assert "logo.png" not in str(fake.workspace.downloads) and ".git" not in str(fake.workspace.downloads)
+        assert ".git" not in str(fake.workspace.downloads)
+        # images are fetched (the vision model can read them); with vision off they are skipped, with a reason
+        assert "logo.png" in str(fake.workspace.downloads)
+        assert any(s.startswith("logo.png") and "vision" in s for s in src.skipped)
 
     def test_unchanged_files_are_not_downloaded_again(self, fake):
         load_path(Path("/Workspace/Users/me/MLOps"))

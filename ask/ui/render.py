@@ -24,6 +24,7 @@ def message(m: dict, idx: int, messages: list[dict] | None = None, title: str = 
         st.markdown(_compact_citations(m["content"]))
         artifacts(m.get("artifacts") or [], idx)
         verification((m.get("meta") or {}).get("verification"), idx)
+        guard_note((m.get("meta") or {}).get("guard"))
         test_runs((m.get("meta") or {}).get("test_runs"))
         if messages:
             save_answer(messages, idx, title)
@@ -126,6 +127,14 @@ def verification(v: dict | None, idx: int) -> None:
             for p in problems:
                 if not any(p.startswith(c["ref"]) for c in cites):
                     st.markdown(f"⚠ {p}")
+
+
+def guard_note(events: list[str] | None) -> None:
+    """What the guardrails did for this answer (injection flagged, answer rewritten or withheld)."""
+    if not events:
+        return
+    body = "<br>".join(html.escape(e) for e in events)
+    st.markdown(f"<div class='ks-check warn'>🛡 Guardrails<br>{body}</div>", unsafe_allow_html=True)
 
 
 def test_runs(run_ids: list[str] | None) -> None:

@@ -19,6 +19,7 @@ from ask import config
 from ask.analysis import compare as cmp
 from ask.analysis import data_query as dq
 from ask.analysis import runner, simulate
+from ask.agent import guardrails
 from ask.agent import validation_tools as vt
 from ask.retrieval import search as rs
 from ask.sources import databricks
@@ -43,6 +44,7 @@ class ToolContext:
     sources_changed: bool = False
     runs: list[str] = field(default_factory=list)            # validation run_ids produced this turn
     judge_model: str | None = None                           # model for LLM-judge tests
+    guard: list[str] = field(default_factory=list)           # guardrail events shown under the answer
 
 
 # ── artifacts ──────────────────────────────────────────────────────────────
@@ -399,4 +401,9 @@ def dispatch(ctx: ToolContext, name: str, arguments: str) -> str:
         return f"Error: {type(exc).__name__}: {exc}\n{traceback.format_exc(limit=3)[-1500:]}"
     if len(out) > config.MAX_TOOL_OUTPUT_CHARS:
         out = out[: config.MAX_TOOL_OUTPUT_CHARS] + "\n… (output truncated; narrow the request)"
+    hits = guardrails.scan(out)            # indirect prompt injection from loaded sources
+    if hits:
+        ctx.guard.append(f"Text that looks like instructions was found in the {name} output "
+                         f"({', '.join(hits)}); it was treated as data.")
+        out = guardrails.tool_notice(hits) + out
     return out

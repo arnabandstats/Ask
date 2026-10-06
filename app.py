@@ -8,7 +8,7 @@ import os
 
 import streamlit as st
 
-from ask import config, preferences
+from ask import config, preferences, usage
 
 st.set_page_config(page_title=preferences.tool_name(), page_icon=":material/chat_bubble:",
                    layout="centered", initial_sidebar_state="expanded")
@@ -39,6 +39,9 @@ def _retitle(cid: str, prompt: str, turn: router.Turn) -> None:
 
 if ss.notice:
     st.warning(ss.notice)
+if ss.toast:                                      # shown once, after the rerun that raised it
+    st.toast(ss.toast, icon=":material/notifications:")
+    ss.toast = None
 
 welcome = st.empty()
 if not ss.messages:
@@ -72,11 +75,13 @@ if prompt:
         if ss.opt_warehouse.strip():              # Settings → Validation; read by ask.sources.tables
             os.environ["ASK_SQL_WAREHOUSE_ID"] = ss.opt_warehouse.strip()
         try:
-            turn = router.answer(prompt, ss.registry, history, model=state.model(),
-                                 verify=ss.opt_verify, output_dir=config.OUTPUT_DIR / cid,
-                                 status=_status,
-                                 reasoning_effort=config.DEEP_REASONING_EFFORT if ss.opt_deep else None,
-                                 judge_model=ss.opt_judge_model.strip() or None)
+            with usage.metering(ss.usage):         # every model call of this turn is counted
+                turn = router.answer(prompt, ss.registry, history, model=state.model(),
+                                     verify=ss.opt_verify, output_dir=config.OUTPUT_DIR / cid,
+                                     status=_status,
+                                     reasoning_effort=config.DEEP_REASONING_EFFORT if ss.opt_deep else None,
+                                     judge_model=ss.opt_judge_model.strip() or None,
+                                     guard_llm=ss.opt_guard_llm)
         except EnvironmentError as exc:
             turn = router.Turn(content=f"**Setup problem:** {exc}")
         except Exception as exc:  # API errors, network, unexpected tool failures
@@ -90,5 +95,6 @@ if prompt:
         store.set_sources(cid, ss.registry.records())
     _retitle(cid, prompt, turn)
     state.mirror_chat()
+    state.check_cost_limit()
     ss.notice = None
     st.rerun()

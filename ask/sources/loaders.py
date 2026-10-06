@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
@@ -27,6 +28,7 @@ CODE_EXTS = {
 }
 DOC_EXTS = {".pdf", ".docx", ".md", ".txt", ".rst", ".tex", ".rtf", ".htm"}
 DATA_EXTS = {".csv", ".tsv", ".xlsx", ".xls", ".parquet", ".pkl", ".pickle", ".feather"}
+IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tif", ".tiff", ".webp"}   # read by the vision model
 NAMED_TEXT_FILES = {"dockerfile", "makefile", "readme", "license", "requirements.txt", ".env.example"}
 
 SKIP_DIRS = {
@@ -83,17 +85,26 @@ class Source:
 
 # ── per-file text cache ────────────────────────────────────────────────────
 
-_TEXT_CACHE: dict[tuple[str, float, int], str] = {}
-_SLOW_EXTS = {".pdf", ".docx"}       # extracted text is also cached on disk
+_TEXT_CACHE: dict[tuple, str] = {}
+_SLOW_EXTS = {".pdf", ".docx"} | IMAGE_EXTS       # extracted text is also cached on disk
+
+
+def _vision_key() -> str:
+    """Part of the cache key: text read with images differs from text read without them."""
+    if not config.READ_IMAGES:
+        return "no-vision"
+    from ask.sources import vision
+    return f"{vision.PROMPT_VERSION}|{config.VISION_MODEL or config.DEFAULT_MODEL}"
 
 
 def _cached_text(p: Path) -> str:
     st = p.stat()
-    key = (str(p), st.st_mtime, st.st_size)
+    slow = p.suffix.lower() in _SLOW_EXTS
+    key = (str(p), st.st_mtime, st.st_size) + ((_vision_key(),) if slow else ())
     if key in _TEXT_CACHE:
         return _TEXT_CACHE[key]
     disk = None
-    if p.suffix.lower() in _SLOW_EXTS:
+    if slow:
         digest = hashlib.sha1(repr(key).encode()).hexdigest()[:20]
         disk = config.DATA_DIR / "text_cache" / f"{digest}.txt"
         if disk.exists():
@@ -125,19 +136,69 @@ def _normalise_newlines(text: str) -> str:
     return text.replace("\r\n", "\n").replace("\r", "\n")
 
 
+_DRAW_XOBJECT = re.compile(rb"/([^\s/\[\]()<>{}%]+)\s+Do\b")
+
+
+def _has_figure(page, depth: int = 0) -> bool:
+    """True when the page DRAWS an image big enough to matter (not a logo or icon). Only the
+    XObjects its content stream paints with `Do` count: many PDFs share one resource dictionary
+    across pages, so an image being listed there says nothing about this page."""
+    try:
+        data = page.get_contents().get_data() if hasattr(page, "get_contents") else page.get_data()
+        drawn = {n.decode("latin-1") for n in _DRAW_XOBJECT.findall(data or b"")}
+        if not drawn:
+            return False
+        xobjects = page["/Resources"].get_object().get("/XObject")
+        if xobjects is None:
+            return False
+        xobjects = xobjects.get_object()
+        for name in drawn:
+            ref = xobjects.get("/" + name)
+            if ref is None:
+                continue
+            obj = ref.get_object()
+            if obj.get("/Subtype") == "/Image" and min(int(obj.get("/Width", 0)), int(obj.get("/Height", 0))) \
+                    >= config.MIN_IMAGE_SIDE:
+                return True
+            if obj.get("/Subtype") == "/Form" and depth < 3 and "/Resources" in obj \
+                    and _has_figure(obj, depth + 1):                 # an image inside a drawn form
+                return True
+    except Exception:
+        return False
+    return False
+
+
 def _read_pdf(p: Path) -> str:
     from pypdf import PdfReader
     reader = PdfReader(str(p))
-    pages = []
+    texts, visual = [], []
     for i, page in enumerate(reader.pages, 1):
         try:
-            txt = page.extract_text() or ""
+            txt = (page.extract_text() or "").strip()
         except Exception as exc:  # one bad page should not lose the document
             txt = f"(page text could not be extracted: {exc})"
-        pages.append(f"[page {i}]\n{txt.strip()}")
-    text = "\n\n".join(pages)
+        texts.append(txt)
+        if len(txt) < 40 or _has_figure(page):         # scanned page, or a chart/figure on it
+            visual.append(i)
+    read: dict[int, str] = {}
+    note = ""
+    if visual and config.READ_IMAGES:
+        from ask.sources import vision
+        pick = visual[:config.MAX_VISION_PAGES]
+        read = vision.read_pdf_pages(p, pick)
+        if len(visual) > len(pick):
+            note = (f"\n\n[note] {len(visual) - len(pick)} more pages with images were not read by the vision "
+                    f"model (limit {config.MAX_VISION_PAGES} per document).")
+    pages = []
+    for i, txt in enumerate(texts, 1):
+        block = f"[page {i}]\n{txt}"
+        if i in read:
+            block += f"\n[page {i} · images, read by the vision model]\n{read[i]}"
+        pages.append(block)
+    text = "\n\n".join(pages) + note
     if not text.replace("[page", "").strip(" \n0123456789]"):
-        raise LoadError("PDF has no extractable text (it may be a scanned image)")
+        raise LoadError("PDF has no extractable text (it may be a scanned image)"
+                        + ("" if config.READ_IMAGES else "; set ASK_READ_IMAGES=1 to read it with the vision model"))
     return text
 
 
@@ -190,10 +251,22 @@ def _read_ipynb(p: Path) -> str:
     return "\n".join(out)
 
 
+def _read_image(p: Path) -> str:
+    if not config.READ_IMAGES:
+        raise LoadError("image files are read by the vision model, which is switched off (ASK_READ_IMAGES)")
+    from ask.sources import vision
+    try:
+        return f"[image: {p.name} · read by the vision model]\n{vision.read_image_file(p)}"
+    except vision.VisionError as exc:
+        raise LoadError(f"image could not be read: {exc}") from exc
+
+
 def read_file_text(p: Path) -> str:
     ext = p.suffix.lower()
-    if p.stat().st_size > config.MAX_FILE_BYTES and ext not in {".pdf", ".docx"}:
+    if p.stat().st_size > config.MAX_FILE_BYTES and ext not in {".pdf", ".docx"} | IMAGE_EXTS:
         raise LoadError(f"larger than {config.MAX_FILE_BYTES // 1_000_000} MB")
+    if ext in IMAGE_EXTS:
+        return _read_image(p)
     if ext == ".pdf":
         return _read_pdf(p)
     if ext == ".docx":
@@ -247,8 +320,27 @@ def _walk(base: Path) -> list[Path]:
     return files
 
 
+def _warm_images(paths: list[Path]) -> None:
+    """Read a folder's images in parallel (each is a vision-model call), filling the cache
+    the sequential loop below then reads from. Failures surface in that loop."""
+    images = [p for p in paths if p.suffix.lower() in IMAGE_EXTS]
+    if len(images) < 2 or not config.READ_IMAGES:
+        return
+    from concurrent.futures import ThreadPoolExecutor
+    from ask import usage
+
+    def one(p: Path) -> None:
+        try:
+            _cached_text(p)
+        except Exception:
+            pass
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        list(pool.map(usage.in_context(one), images))
+
+
 def _load_text_folder(name: str, kind: str, base: Path, paths: list[Path]) -> Source:
     src = Source(name=name, kind=kind, path=str(base))
+    _warm_images(paths)
     for p in paths:
         if len(src.files) >= config.MAX_REPO_FILES:
             src.skipped.append(f"(stopped after {config.MAX_REPO_FILES} files)")
@@ -293,8 +385,8 @@ def load_path(path: Path, hint: str | None = None) -> list[Source]:
         ext = path.suffix.lower()
         if ext in DATA_EXTS:
             return [_load_data_file(name, path)]
-        if ext in DOC_EXTS or ext in CODE_EXTS or path.name.lower() in NAMED_TEXT_FILES:
-            kind = "docs" if ext in DOC_EXTS else "repo"
+        if ext in DOC_EXTS or ext in CODE_EXTS or ext in IMAGE_EXTS or path.name.lower() in NAMED_TEXT_FILES:
+            kind = "docs" if ext in DOC_EXTS or ext in IMAGE_EXTS else "repo"
             if hint in {"repo", "docs"}:
                 kind = hint
             src = _load_text_folder(name, kind, path.parent, [path])
@@ -304,7 +396,7 @@ def load_path(path: Path, hint: str | None = None) -> list[Source]:
             src.path = str(path)
             return [src]
         raise LoadError(f"Unsupported file type '{ext or path.name}'. "
-                        "Supported: code/text files, PDF, DOCX, Markdown, CSV, Excel, Parquet.")
+                        "Supported: code/text files, PDF, DOCX, Markdown, images, CSV, Excel, Parquet.")
 
     try:
         all_files = _walk(path)
@@ -313,6 +405,16 @@ def load_path(path: Path, hint: str | None = None) -> list[Source]:
     code = [p for p in all_files if p.suffix.lower() in CODE_EXTS or p.name.lower() in NAMED_TEXT_FILES]
     docs = [p for p in all_files if p.suffix.lower() in DOC_EXTS]
     data = [p for p in all_files if p.suffix.lower() in DATA_EXTS]
+    images = [p for p in all_files if p.suffix.lower() in IMAGE_EXTS]
+    skipped_images = []
+    if images and not config.READ_IMAGES:
+        skipped_images, images = [f"{p.relative_to(path).as_posix()}: image (vision model switched off)"
+                                  for p in images], []
+    elif len(images) > config.MAX_VISION_IMAGES:
+        skipped_images = [f"{p.relative_to(path).as_posix()}: image beyond the limit of "
+                          f"{config.MAX_VISION_IMAGES} per folder" for p in images[config.MAX_VISION_IMAGES:]]
+        images = images[:config.MAX_VISION_IMAGES]
+    docs += images
 
     if hint == "data" or (not code and not docs and data):
         if not data:
@@ -327,6 +429,7 @@ def load_path(path: Path, hint: str | None = None) -> list[Source]:
     # A repo keeps its documents too (README, specs, PDFs) so both can be cited.
     text_files = sorted(set(code) | set(docs), key=lambda p: str(p).lower())
     src = _load_text_folder(name, kind, path, text_files)
+    src.skipped += skipped_images
     if not src.files:
         raise LoadError(f"Every file in {path} was unreadable ({len(src.skipped)} skipped)")
     src.projects = detect_projects(path)

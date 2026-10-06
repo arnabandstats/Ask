@@ -61,27 +61,28 @@ section[data-testid="stSidebar"] .stButton > button > div { justify-content: fle
 section[data-testid="stSidebar"] .stButton > button p {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem;
 }
-/* New chat: round beige button (same beige as pinned chats) with a dark plus */
-section[data-testid="stSidebar"] .st-key-new_chat { margin: 0.1rem 0 0.7rem 0.2rem; }
-section[data-testid="stSidebar"] .st-key-new_chat button,
-section[data-testid="stSidebar"] .st-key-new_chat button:focus:not(:active) {
-  width: 1.9rem; min-height: 1.9rem; height: 1.9rem; padding: 0; border-radius: 50%;
-  justify-content: center; border: 1px solid var(--pinned-line); background: var(--pinned);
-  color: var(--ink); box-shadow: 0 1px 2px rgba(22, 25, 31, 0.08);
-  transition: background 0.15s ease, transform 0.15s ease;
+/* Top bar: new chat, notifications and settings as three matching small icons */
+section[data-testid="stSidebar"] .st-key-topbar { margin: 0.1rem 0 0.7rem 0.1rem; flex-wrap: nowrap; gap: 0.15rem; }
+section[data-testid="stSidebar"] .st-key-topbar > [data-testid="stElementContainer"],
+section[data-testid="stSidebar"] .st-key-topbar > div { width: auto !important; flex: 0 0 auto; }
+section[data-testid="stSidebar"] :is(.st-key-new_chat, .st-key-bell, .st-key-open_settings) {
+  flex: 0 0 auto; width: auto !important;
 }
-section[data-testid="stSidebar"] .st-key-new_chat button:hover {
-  background: #e4dfd4; color: var(--ink); transform: scale(1.06);
+section[data-testid="stSidebar"] :is(.st-key-new_chat, .st-key-bell, .st-key-open_settings) button,
+section[data-testid="stSidebar"] :is(.st-key-new_chat, .st-key-bell, .st-key-open_settings) button:focus:not(:active) {
+  position: relative; width: 1.7rem; height: 1.7rem; min-height: 1.7rem; padding: 0; border: none;
+  border-radius: 7px; justify-content: center; background: transparent; color: var(--pinned-icon);
 }
-section[data-testid="stSidebar"] .st-key-new_chat button:active { background: #d9d2c4; color: var(--ink); }
-section[data-testid="stSidebar"] .st-key-new_chat button > div { justify-content: center; }
-section[data-testid="stSidebar"] .st-key-new_chat button p {
-  font-size: 1.25rem; line-height: 1; font-weight: 500; color: #5c5447; margin: 0 0 1px 0;
+section[data-testid="stSidebar"] :is(.st-key-new_chat, .st-key-bell, .st-key-open_settings) button:hover {
+  background: var(--pinned); color: var(--ink);
 }
-section[data-testid="stSidebar"] .st-key-open_settings {
-  margin-top: auto; padding-top: 0.4rem; border-top: 1px solid var(--line);
+section[data-testid="stSidebar"] :is(.st-key-new_chat, .st-key-bell, .st-key-open_settings) button > div {
+  justify-content: center;
 }
-section[data-testid="stSidebar"] .st-key-open_settings button { color: var(--muted); }
+section[data-testid="stSidebar"] :is(.st-key-new_chat, .st-key-bell, .st-key-open_settings) [data-testid="stIconMaterial"] {
+  font-size: 1.15rem;
+}
+section[data-testid="stSidebar"] .st-key-bell button div[aria-hidden="true"] { display: none; }   /* no chevron */
 .ks-label { display: block; font-size: 0.72rem; line-height: 1.2; color: var(--muted);
             padding: 0.15rem 0 0.6rem 0.6rem; }
 /* A chat row: title fills the width, the pin toggle appears on hover (always when pinned) */
@@ -106,32 +107,36 @@ section[data-testid="stSidebar"] [class*="st-key-row-"]:hover [class*="st-key-me
 section[data-testid="stSidebar"] [class*="st-key-menu-"] button[aria-expanded="true"] { opacity: 0.85; }
 section[data-testid="stSidebar"] .ks-label:not(:first-child) { padding-top: 0.9rem; }
 
-/* The chat ⋯ menu: a compact list (small padding, menu-item buttons, one-line rename) */
-[data-testid="stPopoverBody"]:has([class*="st-key-dl-full-"]) {
-  padding: 0.4rem 0.45rem; min-width: 0; width: 15rem;
-}
-[data-testid="stPopoverBody"]:has([class*="st-key-dl-full-"]) [data-testid="stVerticalBlock"] { gap: 0.25rem; }
-[data-testid="stPopoverBody"]:has([class*="st-key-dl-full-"]) [data-testid="stForm"] { padding: 0; }
-[class*="st-key-dl-full-"] button, [class*="st-key-del-"] button {
-  justify-content: flex-start; min-height: 1.9rem; padding: 0.2rem 0.5rem; border-radius: 6px;
-  font-size: 0.82rem; color: var(--ink);
-}
-[class*="st-key-dl-full-"] button > div, [class*="st-key-del-"] button > div { justify-content: flex-start; }
-[class*="st-key-dl-full-"] button:hover, [class*="st-key-del-"] button:hover { background: var(--soft); color: var(--ink); }
-[class*="st-key-del-"] button:hover { color: #a23b1c; }
-[data-testid="stPopoverBody"]:has([class*="st-key-dl-full-"]) input {
-  font-size: 0.82rem; padding: 0.3rem 0.5rem; min-height: 1.9rem;
-}
-[data-testid="stPopoverBody"]:has([class*="st-key-dl-full-"]) [data-testid="stTextInputRootElement"] {
-  min-height: 1.9rem; height: 1.9rem;
-}
-[data-testid="stPopoverBody"]:has([class*="st-key-dl-full-"]) [data-testid="stFormSubmitButton"] button {
+/* The chat ⋯ menu: one row — title box, ✎ rename, ⬇ save full chat, 🗑 delete (icons only) */
+[data-testid="stPopoverBody"]:has([class*="st-key-cmenu-"]) { padding: 0.35rem 0.4rem; min-width: 0; width: 17rem; }
+[data-testid="stPopoverBody"]:has([class*="st-key-cmenu-"]) [data-testid="stForm"] { padding: 0; }
+[class*="st-key-cmenu-"] { flex-wrap: nowrap; gap: 0.1rem; }
+[class*="st-key-cmenu-"] > div:first-child { flex: 1 1 auto; min-width: 0; }        /* the rename form */
+[class*="st-key-cmenu-"] [data-testid="stElementContainer"]:has(button) { flex: 0 0 auto; width: auto !important; }
+[class*="st-key-cmenu-"] input { font-size: 0.82rem; padding: 0.3rem 0.5rem; min-height: 1.9rem; }
+[class*="st-key-cmenu-"] [data-testid="stTextInputRootElement"] { min-height: 1.9rem; height: 1.9rem; }
+[class*="st-key-cmenu-"] button {
   min-height: 1.9rem; height: 1.9rem; width: 1.9rem; padding: 0; justify-content: center;
   border-radius: 6px; color: var(--muted);
 }
-[data-testid="stPopoverBody"]:has([class*="st-key-dl-full-"]) [data-testid="stFormSubmitButton"] button:hover {
-  background: var(--soft); color: var(--ink);
-}
+[class*="st-key-cmenu-"] button:hover { background: var(--soft); color: var(--ink); }
+[class*="st-key-del-"] button:hover { color: #a23b1c; }
+
+/* Notifications popover: compact list with an icon header */
+[data-testid="stPopoverBody"]:has(.st-key-notif_head) { padding: 0.45rem 0.6rem 0.55rem; min-width: 0; width: 19rem; }
+[data-testid="stPopoverBody"]:has(.st-key-notif_head):not(:has(.ks-notif)) { width: auto; padding: 0.4rem 0.7rem; }
+[data-testid="stPopoverBody"]:has(.st-key-notif_head) [data-testid="stVerticalBlock"] { gap: 0.3rem; }
+.st-key-notif_head { flex-wrap: nowrap; }
+.st-key-notif_head > div:first-child { flex: 1 1 auto; }
+.st-key-notif_head [data-testid="stElementContainer"]:has(button) { flex: 0 0 auto; width: auto !important; }
+.st-key-notif_head button { min-height: 1.6rem; height: 1.6rem; width: 1.6rem; padding: 0; justify-content: center;
+                            border-radius: 6px; color: var(--muted); }
+.st-key-notif_head button:hover { background: var(--soft); color: var(--ink); }
+.ks-notif-title { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.ks-notif { font-size: 0.8rem; line-height: 1.4; color: var(--ink); padding: 0.35rem 0.45rem; border-radius: 6px;
+            background: var(--pinned); }
+.ks-notif.read { background: transparent; color: var(--muted); }
+.ks-notif span { color: var(--muted); font-size: 0.72rem; margin-right: 0.4rem; }
 
 /* Save menu under each answer: small and quiet until used */
 [class*="st-key-save-"] button { color: var(--muted); font-size: 0.78rem; min-height: 1.6rem;

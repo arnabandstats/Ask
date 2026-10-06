@@ -14,6 +14,8 @@ from dataclasses import dataclass, field
 
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
+from ask import usage
+
 
 _client = None
 _lock = threading.Lock()
@@ -121,6 +123,7 @@ class Conversation:
         if not is_reasoning_model(self.model):
             kw["temperature"] = 0
         resp = _responses_create(**kw)
+        usage.record(self.model, getattr(resp, "usage", None))
         calls = []
         for item in resp.output:
             # Reasoning items and function calls must be sent back on the next request.
@@ -151,6 +154,7 @@ class Conversation:
                 raise
             _NEEDS_NO_REASONING.add(self.model)
             resp = _chat_create(**kw, reasoning_effort="none")
+        usage.record(self.model, getattr(resp, "usage", None))
         msg = resp.choices[0].message
         calls = [ToolCall(tc.id, tc.function.name, tc.function.arguments) for tc in msg.tool_calls or []]
         if calls:

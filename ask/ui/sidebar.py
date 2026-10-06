@@ -1,5 +1,7 @@
-"""Sidebar: New chat (+), past chats, and a Settings dialog pinned to the bottom."""
+"""Sidebar: a top bar of icons (new chat, notifications, settings) and the past chats."""
 from __future__ import annotations
+
+import html
 
 import streamlit as st
 
@@ -11,9 +13,14 @@ from ask.ui import state
 
 def render() -> None:
     with st.sidebar:
-        if st.button("＋", key="new_chat", help="New chat", type="tertiary"):
-            state.new_chat()
-            st.rerun()
+        # Top bar: three matching icons — new chat, notifications, settings.
+        with st.container(key="topbar", horizontal=True, gap="small", vertical_alignment="center"):
+            if st.button("", key="new_chat", icon=":material/add:", help="New chat", type="tertiary"):
+                state.new_chat()
+                st.rerun()
+            _notifications()
+            if st.button("", key="open_settings", icon=":material/tune:", help="Settings", type="tertiary"):
+                settings_dialog()
 
         chats = store.list_chats()
         active_id = st.session_state.chat_id
@@ -27,9 +34,6 @@ def render() -> None:
                 st.markdown(f"<div class='ks-label'>{label}</div>", unsafe_allow_html=True)
                 for c in group:
                     _chat_row(c, active_id)
-
-        if st.button("⚙  Settings", key="open_settings", type="tertiary", width="stretch"):
-            settings_dialog()
 
 
 def _chat_row(c: dict, active_id: str | None) -> None:
@@ -55,6 +59,35 @@ def _chat_row(c: dict, active_id: str | None) -> None:
                     "border-radius: 8px; margin-bottom: 3px; }</style>", unsafe_allow_html=True)
 
 
+def _notifications() -> None:
+    """A small bell next to +: notifications such as the cost limit, with a dot when unread."""
+    ss = st.session_state
+    unread = sum(not n["read"] for n in ss.notifications)
+    if unread:
+        st.markdown("<style>.st-key-bell button::after { content: ''; position: absolute; top: 3px; "
+                    "right: 3px; width: 7px; height: 7px; border-radius: 50%; background: #c0392b; }</style>",
+                    unsafe_allow_html=True)
+    with st.popover("", icon=":material/notifications:", type="tertiary", key="bell",
+                    help=f"{unread} new notification{'s' if unread != 1 else ''}" if unread else "Notifications"):
+        with st.container(key="notif_head", horizontal=True, gap=None, vertical_alignment="center"):
+            title = "Notifications" if ss.notifications else "No notifications"
+            st.markdown(f"<span class='ks-notif-title'>{title}</span>", unsafe_allow_html=True)
+            if not ss.notifications:                  # nothing to mark or clear: header only
+                return
+            if st.button("", key="notif_read", icon=":material/done_all:", type="tertiary", help="Mark all read",
+                         disabled=not unread):
+                for n in ss.notifications:
+                    n["read"] = True
+                st.rerun()
+            if st.button("", key="notif_clear", icon=":material/delete_sweep:", type="tertiary", help="Clear all"):
+                ss.notifications = []
+                st.rerun()
+        for n in reversed(ss.notifications):
+            text = html.escape(n["text"].replace("\\$", "$"))
+            st.markdown(f"<div class='ks-notif{'' if not n['read'] else ' read'}'><span>{n['time']}</span>"
+                        f"{text}</div>", unsafe_allow_html=True)
+
+
 def _full_chat_md(folder, cid: str, title: str):
     """The chat as Markdown, built only when the download is clicked. That happens outside the
     session, so the history folder is captured now and read explicitly."""
@@ -65,25 +98,80 @@ def _full_chat_md(folder, cid: str, title: str):
 
 
 def _chat_menu(c: dict, active_id: str | None) -> None:
-    """A compact menu: save, rename (title box + ✎ on one line; Enter works too), delete."""
-    st.download_button("Save full chat (.md)", _full_chat_md(store.folder(), c["id"], c["title"]),
-                       file_name=export.file_name(c["title"]), mime="text/markdown", type="tertiary",
-                       icon=":material/download:", key=f"dl-full-{c['id']}", width="stretch",
-                       on_click="ignore")
-    with st.form(f"rename-{c['id']}", border=False):         # a form: Enter renames too
-        with st.container(horizontal=True, gap="small", vertical_alignment="center"):
-            new_title = st.text_input("Rename chat", value=c["title"], max_chars=80,
-                                      label_visibility="collapsed", placeholder="Rename chat")
-            renamed = st.form_submit_button("", icon=":material/edit:", help="Rename", type="tertiary")
-        if renamed and new_title.strip() and new_title.strip() != c["title"]:
-            store.rename(c["id"], new_title)
-            state.mirror_chat(c["id"])
-            st.rerun()
-    if st.button("Delete chat", key=f"del-{c['id']}", icon=":material/delete:", type="tertiary",
-                 width="stretch"):
+    """One compact row: title box + ✎ (rename; Enter works too), ⬇ (save full chat), 🗑 (delete)."""
+    with st.container(key=f"cmenu-{c['id']}", horizontal=True, gap=None, vertical_alignment="center"):
+        with st.form(f"rename-{c['id']}", border=False):     # a form: Enter renames too
+            with st.container(horizontal=True, gap=None, vertical_alignment="center"):
+                new_title = st.text_input("Rename chat", value=c["title"], max_chars=80,
+                                          label_visibility="collapsed", placeholder="Rename chat")
+                renamed = st.form_submit_button("", icon=":material/edit:", help="Rename", type="tertiary")
+            if renamed and new_title.strip() and new_title.strip() != c["title"]:
+                store.rename(c["id"], new_title)
+                state.mirror_chat(c["id"])
+                st.rerun()
+        st.download_button("", _full_chat_md(store.folder(), c["id"], c["title"]),
+                           file_name=export.file_name(c["title"]), mime="text/markdown", type="tertiary",
+                           icon=":material/download:", key=f"dl-full-{c['id']}", help="Save full chat (.md)",
+                           on_click="ignore")
+        deleted = st.button("", key=f"del-{c['id']}", icon=":material/delete:", type="tertiary",
+                            help="Delete chat")
+    if deleted:
         store.delete_chat(c["id"])
         if c["id"] == active_id:
             state.new_chat()
+        st.rerun()
+
+
+def _cost_tab() -> None:
+    import pandas as pd
+    from ask import usage
+    ss = st.session_state
+    prices = preferences.prices()
+    total, unpriced = state.session_cost()
+    rows = ss.usage.rows(prices)
+    tokens = sum(r["input"] + r["output"] for r in rows)
+
+    m1, m2, m3 = st.columns(3)
+    m1.metric("This session", state.usd(total).replace("\\", ""))
+    m2.metric("Tokens", f"{tokens:,}")
+    m3.metric("Model calls", f"{sum(r['calls'] for r in rows):,}")
+    if ss.cost_limit > 0:
+        st.progress(min(total / ss.cost_limit, 1.0),
+                    text=f"{state.usd(total)} of your {state.usd(ss.cost_limit)} limit "
+                         f"({total / ss.cost_limit:.0%})")
+    if rows:
+        st.dataframe(pd.DataFrame([{"Model": r["model"], "Calls": r["calls"], "Input tokens": r["input"],
+                                    "of which cached": r["cached"], "Output tokens": r["output"],
+                                    "Cost (USD)": r["cost"]} for r in rows]),
+                     hide_index=True, width="stretch",
+                     column_config={"Cost (USD)": st.column_config.NumberColumn(format="$%.4f")})
+    else:
+        st.caption("No model calls yet in this session.")
+    if unpriced:
+        st.warning(f"No price set for {', '.join(unpriced)}: add it below to include it in the total.")
+
+    with st.form("cost_limit_form", border=False):
+        l1, l2 = st.columns([4, 1], vertical_alignment="bottom")
+        limit = l1.number_input("Notify me when this session costs more than (USD, 0 = off)", min_value=0.0,
+                                value=float(ss.cost_limit), step=0.1, format="%.3f")
+        if l2.form_submit_button("Save", width="stretch"):
+            state.set_cost_limit(limit)
+            st.rerun()
+
+    with st.expander("Prices (USD per 1M tokens)"):
+        table = pd.DataFrame([{"Model": m, "Input": p[0], "Cached input": p[1], "Output": p[2]}
+                              for m, p in prices.items()])
+        edited = st.data_editor(table, num_rows="dynamic", hide_index=True, width="stretch", key="price_editor")
+        if st.button("Save prices", key="save_prices"):
+            clean = {str(r["Model"]).strip(): (float(r["Input"] or 0), float(r["Cached input"] or 0),
+                                               float(r["Output"] or 0))
+                     for _, r in edited.iterrows() if str(r["Model"] or "").strip()}
+            preferences.set_prices(clean)
+            st.rerun()
+        st.caption(usage.PRICES_NOTE + " A model name also matches dated variants that start with it.")
+    if st.button("Reset session usage", key="reset_usage", type="tertiary", icon=":material/restart_alt:"):
+        ss.usage.reset()
+        ss.limit_alerted = False
         st.rerun()
 
 
@@ -99,7 +187,8 @@ def _bound(widget, label: str, opt: str, **kw):
 @st.dialog("Settings", width="large")
 def settings_dialog() -> None:
     ss = st.session_state
-    general, validation, sources, tests = st.tabs(["General", "Validation", "Loaded sources", "Test library"])
+    general, validation, cost, sources, tests = st.tabs(["General", "Validation", "Cost", "Loaded sources",
+                                                         "Test library"])
 
     with general:
         current = preferences.tool_name()
@@ -124,6 +213,10 @@ def settings_dialog() -> None:
         _bound(st.toggle, "Verify citations", "opt_verify",
                help="Check every [file:lines] citation in repo/document answers against the "
                     "lines actually read, and ask the model to fix anything unsupported.")
+        _bound(st.toggle, "Guardrail review of every answer", "opt_guard_llm",
+               help="One small extra model call per answer checks it for bias, for following an injected "
+                    "instruction and for off-topic content, and rewrites it if needed. The rule-based "
+                    "guardrails (injection scan, leak check, bias scan) always run.")
 
         with st.form("history_dir_form", border=False):      # a form: Enter saves too
             h1, h2 = st.columns([4, 1], vertical_alignment="bottom")
@@ -153,6 +246,9 @@ def settings_dialog() -> None:
                    f"Tables above **{config.MAX_TABLE_ROWS:,}** rows are hash-sampled "
                    "(env `ASK_MAX_TABLE_ROWS`). Every test run is saved in "
                    f"`{config.DATA_DIR / 'validation_runs'}`.")
+
+    with cost:
+        _cost_tab()
 
     with sources:
         reg = ss.registry

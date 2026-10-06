@@ -110,9 +110,9 @@ def _access_error(path: str, exc: Exception) -> DatabricksError:
 # ── mirroring ──────────────────────────────────────────────────────────────
 
 def _wanted(name: str) -> bool:
-    from ask.sources.loaders import CODE_EXTS, DATA_EXTS, DOC_EXTS, NAMED_TEXT_FILES
+    from ask.sources.loaders import CODE_EXTS, DATA_EXTS, DOC_EXTS, IMAGE_EXTS, NAMED_TEXT_FILES
     ext = PurePosixPath(name).suffix.lower()
-    return ext in CODE_EXTS | DOC_EXTS | DATA_EXTS or name.lower() in NAMED_TEXT_FILES
+    return ext in CODE_EXTS | DOC_EXTS | DATA_EXTS | IMAGE_EXTS or name.lower() in NAMED_TEXT_FILES
 
 
 def _skipped_dir(rel: str) -> bool:
@@ -180,6 +180,7 @@ def _fetch_workspace(remote: str) -> Path:
     else:
         raise DatabricksError(f"`{remote}` is a {kind.lower()}, not a folder, file or notebook.")
 
+    from ask.sources.loaders import IMAGE_EXTS
     manifest, kept, last_rel = _Manifest(root), 0, None
     for obj in entries:
         rel = str(PurePosixPath(obj.path).relative_to(base))
@@ -191,7 +192,8 @@ def _fetch_workspace(remote: str) -> Path:
             continue
         if kept >= config.MAX_REPO_FILES:
             break
-        if obj.size and obj.size > config.MAX_FILE_BYTES and PurePosixPath(rel).suffix.lower() not in {".pdf", ".docx"}:
+        if obj.size and obj.size > config.MAX_FILE_BYTES and \
+                PurePosixPath(rel).suffix.lower() not in {".pdf", ".docx"} | IMAGE_EXTS:
             continue
         kept += 1
         last_rel = rel

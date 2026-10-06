@@ -46,6 +46,44 @@ def set_tool_name(name: str) -> str:
     return prefs["tool_name"]
 
 
+# ── cost: a spending limit per user, prices for everyone ──
+
+def cost_limit(user: str) -> float:
+    """The user's session cost limit in USD (0 = no limit)."""
+    v = (load().get("cost_limits") or {}).get(user, 0)
+    try:
+        return max(float(v), 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def set_cost_limit(user: str, limit: float) -> float:
+    prefs = load()
+    limits = prefs.get("cost_limits") if isinstance(prefs.get("cost_limits"), dict) else {}
+    limits[user] = round(max(float(limit), 0.0), 4)
+    prefs["cost_limits"] = limits
+    _save(prefs)
+    return limits[user]
+
+
+def prices() -> dict[str, tuple[float, float, float]]:
+    """USD per 1M tokens (input, cached input, output): saved prices over the defaults."""
+    from ask.usage import DEFAULT_PRICES
+    out = dict(DEFAULT_PRICES)
+    for model, p in (load().get("prices") or {}).items():
+        try:
+            out[str(model)] = tuple(float(x) for x in p)[:3]
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
+def set_prices(table: dict[str, tuple[float, float, float]]) -> None:
+    prefs = load()
+    prefs["prices"] = {m: [float(x) for x in p] for m, p in table.items()}
+    _save(prefs)
+
+
 # ── chat history folder, per user ──
 
 def history_dir(user: str) -> str:

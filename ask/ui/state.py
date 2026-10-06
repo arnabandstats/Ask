@@ -3,10 +3,11 @@ from __future__ import annotations
 
 import getpass
 import os
+import time
 
 import streamlit as st
 
-from ask import config, preferences
+from ask import config, preferences, usage
 from ask.memory import export, store
 from ask.sources.registry import SourceRegistry
 
@@ -44,6 +45,47 @@ def init() -> None:
     ss.setdefault("opt_verify", True)
     ss.setdefault("opt_judge_model", config.JUDGE_MODEL or config.DEFAULT_MODEL)
     ss.setdefault("opt_warehouse", os.getenv("ASK_SQL_WAREHOUSE_ID", ""))
+    ss.setdefault("opt_guard_llm", True)        # LLM review of every answer (bias, injection, off-topic)
+    ss.setdefault("usage", usage.Meter())       # token usage of this browser session
+    ss.setdefault("cost_limit", preferences.cost_limit(ss.user))
+    ss.setdefault("limit_alerted", False)
+    ss.setdefault("notifications", [])          # [{"time", "text", "read"}], newest last
+    ss.setdefault("toast", None)
+
+
+def session_cost() -> tuple[float, list[str]]:
+    return st.session_state.usage.total(preferences.prices())
+
+
+def usd(v: float) -> str:
+    """An amount for display: four decimals under a dollar (costs are often fractions of a cent).
+    The $ is escaped because Streamlit Markdown reads $…$ as a formula."""
+    return f"\\${v:,.4f}" if abs(v) < 1 else f"\\${v:,.2f}"
+
+
+def notify(text: str) -> None:
+    ss = st.session_state
+    ss.notifications.append({"time": time.strftime("%H:%M"), "text": text, "read": False})
+    ss.toast = text
+
+
+def check_cost_limit() -> None:
+    """Notify once when the session's cost reaches the user's limit."""
+    ss = st.session_state
+    if ss.cost_limit <= 0 or ss.limit_alerted:
+        return
+    total, _ = session_cost()
+    if total >= ss.cost_limit:
+        ss.limit_alerted = True
+        notify(f"Cost limit reached: this session has cost {usd(total)}, at or above your limit of "
+               f"{usd(ss.cost_limit)}. See Settings → Cost.")
+
+
+def set_cost_limit(limit: float) -> None:
+    ss = st.session_state
+    ss.cost_limit = preferences.set_cost_limit(ss.user, limit)
+    ss.limit_alerted = False                    # a new limit can alert again
+    check_cost_limit()
 
 
 def new_chat() -> None:
@@ -61,8 +103,8 @@ def open_chat(cid: str) -> None:
     reg = SourceRegistry()
     errors = []
     if chat["sources"]:
-        with st.spinner("Reloading this chat's sources…"):
-            errors = reg.restore(chat["sources"])
+        with st.spinner("Reloading this chat's sources…"), usage.metering(ss.usage):
+            errors = reg.restore(chat["sources"])     # may read images with the vision model
     ss.registry = reg
     ss.notice = ("Some sources could not be reloaded:\n- " + "\n- ".join(errors)) if errors else None
 

@@ -30,6 +30,13 @@ MAX_REPAIR_STEPS = 5          # extra rounds for the citation-repair pass
 HISTORY_TURNS = 12            # past user/assistant turns sent with each question
 MAX_TOOL_OUTPUT_CHARS = 24_000
 
+# Images: PDF pages with figures/scans and image files are read by the vision model.
+READ_IMAGES = os.getenv("ASK_READ_IMAGES", "1").lower() not in {"0", "false", "no"}
+VISION_MODEL = os.getenv("ASK_VISION_MODEL", "")      # blank = the default model
+MAX_VISION_PAGES = 40         # PDF pages read by the vision model per document
+MAX_VISION_IMAGES = 60        # image files read per folder
+MIN_IMAGE_SIDE = 120          # smaller embedded images (logos, icons) don't trigger a page read
+
 # Loading limits.
 MAX_FILE_BYTES = 5_000_000    # skip text files larger than this
 MAX_REPO_FILES = 6_000

@@ -360,6 +360,8 @@ Set in `.env` locally (see `.env.example`), or as environment variables.
 | `ASK_DATA_DIR` | `./ask_data` | Where chats, outputs and caches are stored |
 | `ASK_VALIDATION_SEED` | `20240601` | Seed for every random step in a test (bootstrap, noise, Monte Carlo) |
 | `ASK_JUDGE_MODEL` | default model | Model for LLM-judge tests (also in Settings → Validation) |
+| `ASK_READ_IMAGES` | `1` | Read images with the vision model: PDF pages that are scanned or show figures, and image files in folders (`0` = off) |
+| `ASK_VISION_MODEL` | default model | Model used to read images |
 | `ASK_SQL_WAREHOUSE_ID` | | Databricks SQL warehouse for Unity Catalog tables when there's no Spark session (also in Settings → Validation) |
 | `ASK_MAX_TABLE_ROWS` | `2000000` | Tables above this are hash-sampled deterministically |
 | `ASK_LIVE_TESTS` | | `1` to run the optional tests that call the real API |
