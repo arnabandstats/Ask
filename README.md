@@ -313,7 +313,7 @@ e.g. "use a 0.3 threshold".
   (OpenAI or Azure OpenAI). Calls use the **Responses API**, so reasoning models can use
   tools with reasoning switched on; if an endpoint doesn't offer it, the app falls back to
   Chat Completions automatically for the session.
-- **Think deeper** switches to the think-deeper model (default `gpt-5.6-luna`) with the
+- **Think deeper** switches to the think-deeper model (default `gpt-5.6-sol`) with the
   configured reasoning effort (default `medium`).
 
 ---
@@ -354,8 +354,8 @@ Set in `.env` locally (see `.env.example`), or as environment variables.
 | `AZURE_OPENAI_KEY` / `AZURE_OPENAI_TOKEN` | | Azure key |
 | `AZURE_OPENAI_BASE_URL` | | Azure endpoint |
 | `AZURE_OPENAI_VERSION` | `2024-02-01` | Azure API version (use a recent one, e.g. `2025-03-01-preview`, for the Responses API) |
-| `OPENAI_DEPLOYMENT_NAME` | `gpt-4.1` | Default model (Azure: your deployment name) |
-| `ASK_DEEP_MODEL` | `gpt-5.6-luna` | Model used when *Think deeper* is on |
+| `OPENAI_DEPLOYMENT_NAME` | `gpt-5.6-luna` | Default model (Azure: your deployment name) |
+| `ASK_DEEP_MODEL` | `gpt-5.6-sol` | Model used when *Think deeper* is on |
 | `ASK_REASONING_EFFORT` | `medium` | Reasoning effort for *Think deeper* (`low` / `medium` / `high`) |
 | `ASK_DATA_DIR` | `./ask_data` | Where chats, outputs and caches are stored |
 | `ASK_VALIDATION_SEED` | `20240601` | Seed for every random step in a test (bootstrap, noise, Monte Carlo) |
@@ -395,7 +395,7 @@ in the repo root, next to `app.py`. At the top of the second cell set:
 |---|---|
 | `AZURE_KEY_SECRET` | Name of the key in `OneLab-SecretScope` holding the Azure OpenAI key |
 | `AZURE_ENDPOINT`, `AZURE_API_VERSION` | Your Azure OpenAI endpoint and API version |
-| `AZURE_DEPLOYMENT` | Azure deployment name (blank = `gpt-4.1`) |
+| `AZURE_DEPLOYMENT` | Azure deployment name (blank = `gpt-5.6-luna`) |
 | `PORT` | Port on the driver (default `8502`) |
 
 Then **Run all**. The notebook installs `requirements.txt`, starts the app on the cluster's

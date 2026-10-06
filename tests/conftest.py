@@ -30,7 +30,12 @@ def isolated_data_dir(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "DB_PATH", data / "chats.db")
     monkeypatch.setattr(config, "OUTPUT_DIR", data / "outputs")
     loaders._TEXT_CACHE.clear()
+    from ask.memory import store
+    store.use_folder(None)                 # start every test at the default chat history folder
+    store.set_resolver(None)
     yield data
+    store.use_folder(None)
+    store.set_resolver(None)
 
 
 @pytest.fixture(autouse=True)

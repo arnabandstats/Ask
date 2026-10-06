@@ -1,6 +1,6 @@
 # Validation test catalog
 
-243 tests (236 deterministic, 7 LLM-judge), generated from the registry in `ask/validation`. Regenerate with `python -m ask.validation.catalog_doc`.
+244 tests (236 deterministic, 8 LLM-judge), generated from the registry in `ask/validation`. Regenerate with `python -m ask.validation.catalog_doc`.
 
 Required inputs are in **bold**, the rest are optional. Run a test with `run_validation_test` (or as part of `run_validation_suite`); each run is saved with a citable run_id. `describe_test` gives the full description, H0 and references.
 
@@ -131,7 +131,7 @@ Required inputs are in **bold**, the rest are optional. Run a test with `run_val
 | `fairness.score_distribution` Score distribution by group (SMD, KS, Mann–Whitney) | Fairness | ml_classification, pd, aml, ews | target, **protected**, **score**, reference_group |
 | `fairness.treatment_equality` Treatment equality (FN / FP ratio by group) | Fairness | ml_classification, pd, aml, ews | **target**, **protected**, score, predicted, threshold, reference_group, favourable_label |
 
-## `genai` (23)
+## `genai` (24)
 
 | Test | Area | Model types | Inputs |
 |---|---|---|---|
@@ -139,6 +139,7 @@ Required inputs are in **bold**, the rest are optional. Run a test with `run_val
 | `genai.answer_relevance` Answer relevance to the question (LLM judge, 1–5) *(LLM judge)* | Answer quality | genai | **question**, **answer**, max_rows |
 | `genai.atomic_facts` Atomic-fact precision / recall / hallucination (LLM judge, FActScore-style) *(LLM judge)* | Answer quality | genai | **answer**, **reference**, contexts, context_separator, max_rows |
 | `genai.atomic_facts_lexical` Atomic-fact precision / recall (deterministic, lexical) | Answer quality | genai | **answer**, **reference**, threshold, min_clause_tokens, decimal, segment |
+| `genai.atomic_facts_long` Atomic-fact precision / recall for long documents (LLM judge, chunked) *(LLM judge)* | Answer quality | genai | **answer**, **reference**, chunk_chars, fact_batch, source_chars, max_rows |
 | `genai.bleu` BLEU (corpus and smoothed sentence-level) | Answer quality | genai | **answer**, **reference**, multi_reference, max_n, lowercase, epsilon, segment |
 | `genai.chrf` chrF (character n-gram F-score) | Answer quality | genai | **answer**, **reference**, multi_reference, max_n, beta, segment |
 | `genai.citations` Citation validity and lexical support | Groundedness | genai | **answer**, contexts, retrieved_ids, context_separator, citation_pattern, id_base, threshold |

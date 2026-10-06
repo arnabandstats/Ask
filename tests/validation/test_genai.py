@@ -345,7 +345,16 @@ def fake_judge(system: str, user: str) -> str:
         split = lambda s: [x.strip().rstrip(".") for x in re.split(r"(?<=\.)\s+", s) if x.strip()]
         out = {"answer_facts": split(_tag(user, "answer")), "reference_facts": split(_tag(user, "reference"))}
         return "```json\n" + json.dumps(out) + "\n```"
+    if task == "FACT_EXTRACTION_SINGLE":
+        src = _tag(user, "source")
+        if "UNPARSEABLE" in src:
+            return "no facts here"
+        lines = [x for x in src.splitlines() if x.strip() and not x.startswith("[page")]
+        return json.dumps({"facts": [x.strip().rstrip(".") for s in lines
+                                     for x in re.split(r"(?<=\.)\s+", s) if x.strip()]})
     if task == "FACT_VERIFICATION":
+        if "flaky" in _tag(user, "facts").lower() and len(_numbered_items(_tag(user, "facts"))) > 1:
+            return "{}"                                       # a batch the judge fumbles; singles work
         src = _tag(user, "source").lower()
         v = []
         for k, f in enumerate(_numbered_items(_tag(user, "facts")), 1):
@@ -427,6 +436,73 @@ def test_atomic_facts_judge():
     pf = res.tables["Per fact"]
     assert set(pf.loc[pf["side"] == "answer", "verdict_vs_reference"]) == {"supported", "contradicted",
                                                                             "not_mentioned"}
+
+
+def _long_doc(sentences_per_page: list[list[str]]) -> str:
+    return "\n\n".join(f"[page {k}]\n" + " ".join(s) for k, s in enumerate(sentences_per_page, 1))
+
+
+def test_chunk_text_keeps_pages_and_size():
+    text = _long_doc([[f"Fact {p}-{i} is stated here." for i in range(30)] for p in range(1, 6)])
+    chunks = G.chunk_text(text, 500)
+    assert all(len(c) <= 500 for _, c in chunks) and len(chunks) > 5
+    assert chunks[0][0] == "p. 1" and chunks[-1][0] == "p. 5"
+    whole = [s for p in range(1, 6) for s in (f"Fact {p}-{i} is stated here." for i in range(30))]
+    assert all(any(s in c for _, c in chunks) for s in whole)        # long lines cut at sentence ends
+    assert "".join(c for _, c in chunks).replace("\n", "").replace(" ", "") == \
+        text.replace("\n", "").replace(" ", "")                     # nothing lost or duplicated
+    assert G.chunk_text("no pages. just text.", 500) == [("part 1", "no pages. just text.")]
+    assert [len(c) for _, c in G.chunk_text("x" * 1200, 500)] == [500, 500, 200]
+
+
+def _long_pair():
+    common = [f"Metric {i} equals {i * 7} basis points." for i in range(40)]
+    answer = _long_doc([common[:20], common[20:] + ["Berlin is the capital of France.",
+                                                     "The flaky model has 9 layers."]])
+    reference = _long_doc([common[:20], common[20:35] + ["The model uses 3 layers.", "France is in Europe."]])
+    return pd.DataFrame({"answer": [answer], "reference": [reference]})
+
+
+def test_atomic_facts_long_whole_document():
+    res = run_test("genai.atomic_facts_long", _ctx(_long_pair(), judge=fake_judge),
+                   {"answer": "answer", "reference": "reference", "chunk_chars": 600, "fact_batch": 4})
+    assert res.status == "ok", res.error
+    s = res.summary
+    # answer: 40 metrics (35 in the reference) + Berlin (contradicted) + flaky (not mentioned)
+    assert (s["answer_facts"], s["reference_facts"]) == (42, 37)
+    assert s["fact_precision_micro"] == pytest.approx(35 / 42)
+    assert s["contradiction_rate_micro"] == pytest.approx(1 / 42)
+    assert s["fact_recall_micro"] == pytest.approx(35 / 37)
+    assert s["facts_unjudged"] == 0 and s["chunks_unparseable"] == 0   # the flaky batch was split, not lost
+    pf = res.tables["Per fact"]
+    assert pf.iloc[0]["verdict"] == "contradicted" and set(pf["location"]) <= {"p. 1", "p. 2", "p. 1-2"}
+    assert not any("word overlap" in n for n in res.notes)
+
+
+def test_atomic_facts_long_selects_passages_for_long_reference():
+    res = run_test("genai.atomic_facts_long", _ctx(_long_pair(), judge=fake_judge),
+                   {"answer": "answer", "reference": "reference", "chunk_chars": 600, "fact_batch": 1,
+                    "source_chars": 600})
+    assert res.status == "ok", res.error
+    assert any("word overlap" in n for n in res.notes)
+    s = res.summary                                     # exact-wording support is still found
+    assert (s["answer_facts"], s["reference_facts"]) == (42, 37)
+    assert s["fact_precision_micro"] == pytest.approx(35 / 42)
+    assert s["fact_recall_micro"] == pytest.approx(35 / 37)
+
+
+def test_atomic_facts_long_counts_failed_chunks():
+    df = pd.DataFrame({"answer": ["UNPARSEABLE text."], "reference": ["Paris is the capital of France."]})
+    res = run_test("genai.atomic_facts_long", _ctx(df, judge=fake_judge), {"answer": "answer", "reference": "reference"})
+    assert res.status == "ok", res.error
+    assert res.summary["chunks_unparseable"] == 1 and res.summary["answer_facts"] == 0
+    assert any("no parseable facts" in n for n in res.notes)
+
+
+def test_atomic_facts_long_rejects_bad_sizes():
+    res = run_test("genai.atomic_facts_long", _ctx(_long_pair(), judge=fake_judge),
+                   {"answer": "answer", "reference": "reference", "chunk_chars": 100})
+    assert res.status == "error" and "chunk_chars" in res.error
 
 
 def test_faithfulness_judge(qa):

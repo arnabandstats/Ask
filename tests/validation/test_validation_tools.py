@@ -54,6 +54,33 @@ class TestCatalogTools:
         assert out.startswith("Error:")
 
 
+class TestDocumentFacts:
+    @pytest.fixture
+    def docs_ctx(self, tmp_path, monkeypatch):
+        from ask.validation import judge
+        from tests.validation.test_genai import fake_judge
+        monkeypatch.setattr(judge, "make_judge", lambda model=None: fake_judge)
+        (tmp_path / "generated.txt").write_text("Paris is the capital of France. Berlin is the capital of France.")
+        (tmp_path / "truth.txt").write_text("Paris is the capital of France. France is in Europe.")
+        reg = SourceRegistry()
+        reg.load(tmp_path / "generated.txt")
+        reg.load(tmp_path / "truth.txt")
+        return _ctx(tmp_path, reg)
+
+    def test_compares_two_loaded_documents_by_name(self, docs_ctx):
+        out = call(docs_ctx, "compare_document_facts", answer="generated.txt", reference="truth.txt")
+        assert "genai.atomic_facts_long" in out and "OK" in out, out
+        assert "fact_precision_micro = 0.5" in out and "fact_recall_micro = 0.5" in out
+        assert docs_ctx.runs and docs_ctx.artifacts                 # saved with a run_id and shown
+
+    def test_unknown_document_is_a_readable_error(self, docs_ctx):
+        out = call(docs_ctx, "compare_document_facts", answer="nope.pdf", reference="truth.txt")
+        assert out.startswith("Error:") and "nope.pdf" in out
+
+    def test_non_object_arguments_are_rejected(self, docs_ctx):
+        assert "JSON object" in dispatch(docs_ctx, "compare_document_facts", "[1, 2]")
+
+
 class TestRuns:
     def test_run_saves_audit_record_and_shows_tables(self, tmp_path, data_reg):
         ctx = _ctx(tmp_path, data_reg)

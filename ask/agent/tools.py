@@ -18,7 +18,7 @@ import pandas as pd
 from ask import config
 from ask.analysis import compare as cmp
 from ask.analysis import data_query as dq
-from ask.analysis import runner
+from ask.analysis import runner, simulate
 from ask.agent import validation_tools as vt
 from ask.retrieval import search as rs
 from ask.sources import databricks
@@ -28,7 +28,7 @@ from ask.sources.registry import SourceRegistry
 
 TEXT_TOOLS = {"search", "grep", "read_file", "list_files", "compare", "overview"} | vt.TEXT
 DATA_TOOLS = {"data_overview", "query_data", "make_chart", "run_data_quality", "list_tests",
-              "run_tests"} | vt.DATA
+              "run_tests", "simulate_data"} | vt.DATA
 
 
 @dataclass
@@ -248,6 +248,23 @@ def t_run_tests(ctx: ToolContext, model_type: str, observed_col: str, predicted_
     return text
 
 
+def t_simulate_data(ctx: ToolContext, n: int, columns: list[dict], seed: int | None = None,
+                    name: str | None = None) -> str:
+    seed = config.VALIDATION_SEED if seed is None else int(seed)
+    spec = {"n": int(n), "columns": columns, "seed": seed}
+    ctx.status(f"Simulating {int(n):,} rows")
+    df = simulate.generate(**spec)
+    src = ctx.registry.add_simulated(name or "simulated", df, spec)
+    ctx.sources_changed = True
+    with pd.option_context("display.width", 200, "display.max_columns", 20):
+        stats = df.describe(include="all").T.to_string()
+    text = (f"Loaded [data] {src.name}: SIMULATED, {len(df):,} rows × {df.shape[1]} columns, seed {seed} "
+            f"(reproducible). It is now the active table for make_chart / query_data / tests.\n"
+            f"Spec: {columns}\nSample statistics:\n{stats}")
+    ctx.notes.append(text[:3000])
+    return text
+
+
 def t_compare(ctx: ToolContext, a: str, b: str) -> str:
     ctx.status(f"Comparing {a} with {b}")
     text = cmp.compare(ctx.registry, ctx.evidence, a, b)
@@ -264,6 +281,7 @@ def _fn(name: str, desc: str, props: dict, required: list[str] | None = None) ->
 
 
 _S = {"type": "string"}
+_SIM_DISTS, _SIM_HELP = list(simulate.DISTRIBUTIONS), simulate.help_text()
 _SRC = {"type": "string", "description": "Loaded source name. Omit when only one fits."}
 _SHEET = {"type": "string", "description": "Excel sheet to use (makes it the active table)."}
 
@@ -287,6 +305,19 @@ SCHEMAS = [
         {"source": _SRC}),
     _fn("list_files", "List files in loaded repos/documents.",
         {"source": _SRC, "glob": {"type": "string"}}),
+    _fn("simulate_data", "Generate a SIMULATED table (synthetic random data) and load it as the active "
+        "data source, e.g. 1000 draws from a normal distribution, a mix of columns, a toy default "
+        "flag. Seeded and reproducible. Then use make_chart / query_data / tests on it. "
+        "Distributions and params: " + _SIM_HELP,
+        {"n": {"type": "integer", "description": "Number of rows (max 1,000,000)."},
+         "columns": {"type": "array", "description": "One entry per column.", "items": {
+             "type": "object", "properties": {
+                 "name": _S, "distribution": {"type": "string", "enum": _SIM_DISTS},
+                 "params": {"type": "object", "description": "e.g. {\"mean\": 0, \"var\": 1}"}},
+             "required": ["name", "distribution"]}},
+         "seed": {"type": "integer", "description": "Random seed (default: the validation seed)."},
+         "name": {"type": "string", "description": "Source name (default 'simulated')."}},
+        ["n", "columns"]),
     _fn("data_overview", "Columns, dtypes, null counts, summary stats and first rows of a table.",
         {"source": _SRC, "sheet": _SHEET}),
     _fn("query_data", "Evaluate ONE pandas expression. Names: df (active table), dfs (dict of all "
@@ -340,6 +371,7 @@ _IMPL = {
     "read_file": t_read_file, "list_files": t_list_files, "overview": t_overview, "data_overview": t_data_overview,
     "query_data": t_query_data, "make_chart": t_make_chart, "run_data_quality": t_run_data_quality,
     "list_tests": t_list_tests, "run_tests": t_run_tests, "compare": t_compare,
+    "simulate_data": t_simulate_data,
     **vt.IMPL,
 }
 
@@ -351,7 +383,10 @@ def dispatch(ctx: ToolContext, name: str, arguments: str) -> str:
     try:
         args = json.loads(arguments or "{}")
     except json.JSONDecodeError as exc:
-        return f"Arguments were not valid JSON: {exc}"
+        return (f"Arguments were not valid JSON: {exc}. Pass names and short values only; tools read "
+                "loaded documents themselves, so never put document text in arguments.")
+    if not isinstance(args, dict):
+        return "Arguments must be a JSON object of parameter names to values."
     ctx.used.add(name)
     try:
         out = fn(ctx, **{k: v for k, v in args.items() if v is not None})

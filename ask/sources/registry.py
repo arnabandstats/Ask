@@ -11,6 +11,7 @@ class SourceRegistry:
         self.sources: dict[str, Source] = {}
         self.models: dict = {}                     # name -> validation.models.LoadedModel
         self.table_specs: dict[str, dict] = {}     # UC table source name -> load_table arguments
+        self.sim_specs: dict[str, dict] = {}       # simulated source name -> simulate.generate arguments
 
     # ── add / remove ──
     def load(self, path: Path, hint: str | None = None) -> list[Source]:
@@ -49,6 +50,7 @@ class SourceRegistry:
             del self.models[name]
             return True
         self.table_specs.pop(name, None)
+        self.sim_specs.pop(name, None)
         return self.sources.pop(name, None) is not None
 
     def restore(self, records: list[dict]) -> list[str]:
@@ -63,6 +65,10 @@ class SourceRegistry:
                 if rec.get("table"):
                     from ask.sources.tables import load_table
                     self.add_table(rec["name"], load_table(**rec["table"]), rec["table"])
+                    continue
+                if rec.get("simulated"):            # regenerated from its seed: identical table
+                    from ask.analysis.simulate import generate
+                    self.add_simulated(rec["name"], generate(**rec["simulated"]), rec["simulated"])
                     continue
                 srcs = load_path(Path(rec["path"]), rec.get("kind"))
                 for s in srcs:
@@ -83,12 +89,24 @@ class SourceRegistry:
         self.table_specs[src.name] = dict(spec)
         return src
 
+    def add_simulated(self, name: str, df, spec: dict) -> Source:
+        """A simulated table (ask.analysis.simulate) as a data source; the spec is saved with the
+        chat so reopening it regenerates the same rows."""
+        import hashlib
+        import json
+        key = hashlib.sha256(json.dumps(spec, sort_keys=True, default=str).encode()).hexdigest()[:10]
+        src = self.add(Source(name=name, kind="data", path=f"sim://{key}", df=df, sheets={name: df}))
+        self.sim_specs[src.name] = dict(spec)
+        return src
+
     def records(self) -> list[dict]:
         out = []
         for s in self.sources.values():
             rec = s.record()
             if s.name in self.table_specs:
                 rec["table"] = self.table_specs[s.name]
+            if s.name in self.sim_specs:
+                rec["simulated"] = self.sim_specs[s.name]
             out.append(rec)
         out += [{"name": m.name, "kind": "model", "path": m.location} for m in self.models.values()]
         return out

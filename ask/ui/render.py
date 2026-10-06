@@ -12,8 +12,9 @@ import streamlit as st
 from ask.agent.faithfulness import CITATION, parse_ranges
 from ask.validation.store import RUN_CITATION
 
-def message(m: dict, idx: int) -> None:
-    """User turns: a grey bubble on the right. Assistant turns: plain text on the left.
+def message(m: dict, idx: int, messages: list[dict] | None = None, title: str = "Chat") -> None:
+    """User turns: a grey bubble on the right. Assistant turns: plain text on the left, then a
+    small Save menu when `messages` (the whole chat) is given.
     The layout comes from the st-key-umsg-* / st-key-amsg-* classes in styles.py."""
     if m["role"] == "user":
         with st.container(key=f"umsg-{idx}"):
@@ -24,6 +25,19 @@ def message(m: dict, idx: int) -> None:
         artifacts(m.get("artifacts") or [], idx)
         verification((m.get("meta") or {}).get("verification"), idx)
         test_runs((m.get("meta") or {}).get("test_runs"))
+        if messages:
+            save_answer(messages, idx, title)
+
+
+def save_answer(messages: list[dict], idx: int, title: str) -> None:
+    """Download this answer (with its question) as Markdown. The whole chat is saved from the
+    chat's ⋯ menu in the sidebar."""
+    from ask import preferences
+    from ask.memory import export
+    st.download_button("", lambda: export.exchange_md(messages, idx, title, preferences.tool_name()),
+                       file_name=export.file_name(title, f"-answer-{idx}"), mime="text/markdown",
+                       icon=":material/download:", type="tertiary", key=f"save-{idx}",
+                       help="Save this response (.md)", on_click="ignore")
 
 
 def assistant_block(idx: int | str):

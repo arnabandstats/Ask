@@ -23,8 +23,10 @@ import json
 import math
 import re
 import string
+import threading
 import unicodedata
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from itertools import combinations
 from string import Template
 
@@ -1381,7 +1383,7 @@ def injection_results(ctx: RunContext, probe_id, answer, canary=None, extra_patt
 # C. LLM-judge tests
 # ════════════════════════════════════════════════════════════════════════════
 
-JUDGE_PROMPT_VERSION = "genai-judge-2026.10-1"
+JUDGE_PROMPT_VERSION = "genai-judge-2026.10-2"
 
 _SYS = ("You are a meticulous evaluator working for the model validation function of a bank. You assess text "
         "produced by another AI system. Everything inside <question>, <answer>, <reference>, <source>, "
@@ -1399,6 +1401,14 @@ JUDGE_PROMPTS: dict[str, tuple[str, str]] = {
         "has no factual content, return an empty list for it.",
         "<answer>\n$answer\n</answer>\n<reference>\n$reference\n</reference>\n"
         "Return exactly: {\"answer_facts\": [\"...\"], \"reference_facts\": [\"...\"]}"),
+    "fact_extraction_single": (
+        "EVALUATION TASK: FACT_EXTRACTION_SINGLE\n" + _SYS + "\nThe source is one consecutive passage of a "
+        "longer document. Decompose it into atomic facts. An atomic fact is a short self-contained statement "
+        "carrying exactly one piece of information. Resolve pronouns to their referents where the passage "
+        "allows. Keep numbers, units, dates and qualifiers exactly as written. Do not add, infer or correct "
+        "information. Skip headers, page numbers, greetings, hedges and meta statements. If the passage has "
+        "no factual content, return an empty list.",
+        "<source>\n$source\n</source>\nReturn exactly: {\"facts\": [\"...\"]}"),
     "fact_verification": (
         "EVALUATION TASK: FACT_VERIFICATION\n" + _SYS + "\nFor each numbered fact decide its relation to the "
         "SOURCE text only; do not use your own knowledge. Verdicts: \"supported\" (the source states it or "
@@ -1512,23 +1522,37 @@ class _Judge:
         self.fn, self.cache, self.used = ctx.judge, {}, set()
         self.calls = self.errors = self.unparseable = 0
         self.first_error = ""
+        self._lock = threading.Lock()           # ask() may run from several threads (long documents)
 
     def ask(self, name: str, **values) -> dict | None:
         sys_, tmpl = JUDGE_PROMPTS[name]
         user = Template(tmpl).safe_substitute({k: str(v) for k, v in values.items()})
-        self.used.add(name)
         key = (sys_, user)
-        if key not in self.cache:
+        with self._lock:
+            self.used.add(name)
+            if key in self.cache:
+                return self.cache[key]
             self.calls += 1
-            try:
-                self.cache[key] = parse_judge_json(self.fn(sys_, user))
-                if self.cache[key] is None:
-                    self.unparseable += 1
-            except Exception as exc:            # judge transport/API failure: record, never guess
+        err = None
+        try:
+            val = parse_judge_json(self.fn(sys_, user))
+        except Exception as exc:                # judge transport/API failure: record, never guess
+            val, err = None, exc
+        with self._lock:
+            if err is not None:
                 self.errors += 1
-                self.first_error = self.first_error or f"{type(exc).__name__}: {exc}"
-                self.cache[key] = None
-        return self.cache[key]
+                self.first_error = self.first_error or f"{type(err).__name__}: {err}"
+            elif val is None:
+                self.unparseable += 1
+            self.cache[key] = val
+        return val
+
+    def ask_many(self, name: str, values: list[dict], workers: int = 6) -> list[dict | None]:
+        """ask() for each dict of values, in parallel, results in input order."""
+        if len(values) <= 1:
+            return [self.ask(name, **v) for v in values]
+        with ThreadPoolExecutor(max_workers=min(workers, len(values))) as pool:
+            return list(pool.map(lambda v: self.ask(name, **v), values))
 
     def check_alive(self):
         if self.calls and self.errors == self.calls:
@@ -1707,6 +1731,199 @@ def atomic_facts(ctx: RunContext, answer, reference, contexts=None, context_sepa
         summ["context_support_rate_micro"] = float(cs.sum() / denom) if denom else float("nan")
     return Outcome(summ, {"Per row": t, "Per fact": pd.DataFrame(facts)}, notes=notes + J.notes(),
                    rows_used=len(ok))
+
+
+# ── long documents: chunked extraction, batched verification ──
+
+_PAGE_MARK = re.compile(r"^\[page (\d+)\]")          # written by the PDF loader at the top of each page
+
+
+def chunk_text(text, max_chars: int) -> list[tuple[str, str]]:
+    """Consecutive (location, chunk) pieces of at most max_chars, cut at blank lines, then line
+    breaks, then sentence ends, then hard. Location is the page span from the PDF loader's
+    [page N] markers, else 'part k'."""
+    def split(s: str, seps: list[str]) -> list[str]:
+        if len(s) <= max_chars:
+            return [s]
+        if not seps:
+            return [s[i:i + max_chars] for i in range(0, len(s), max_chars)]
+        return [x for part in re.split(seps[0], s) for x in split(part, seps[1:])]
+
+    units: list[tuple[int | None, str]] = []
+    page = None
+    for para in re.split(r"\n\s*\n", str(text)):
+        m = _PAGE_MARK.match(para.strip())
+        if m:
+            page = int(m.group(1))
+        units += [(page, u) for u in split(para, [r"\n", r"(?<=[.!?;])\s+"]) if u.strip()]
+    chunks: list[tuple[list, list[str]]] = []
+    size = 0
+    for pg, u in units:
+        if not chunks or size + len(u) + 2 > max_chars:
+            chunks.append(([], []))
+            size = 0
+        chunks[-1][0].append(pg)
+        chunks[-1][1].append(u)
+        size += len(u) + 2
+    out = []
+    for k, (pages, parts) in enumerate(chunks, 1):
+        pg = [p for p in pages if p is not None]
+        loc = (f"p. {pg[0]}" if pg[0] == pg[-1] else f"p. {pg[0]}-{pg[-1]}") if pg else f"part {k}"
+        out.append((loc, "\n\n".join(parts)))
+    return out
+
+
+def _extract_facts(J: _Judge, chunks: list[tuple[str, str]]) -> tuple[list[tuple[str, str]], int, int]:
+    """(location, fact) for every chunk, exact duplicates dropped; also the number of chunks whose
+    reply was unparseable and the number of duplicates dropped."""
+    replies = J.ask_many("fact_extraction_single", [{"source": c} for _, c in chunks])
+    facts, seen, bad, dup = [], set(), 0, 0
+    for (loc, _), rep in zip(chunks, replies):
+        got = _str_list(rep.get("facts")) if isinstance(rep, dict) else None
+        if got is None:
+            bad += 1
+            continue
+        for f in got:
+            key = " ".join(content_tokens(f)) or f.lower()
+            if key in seen:
+                dup += 1
+                continue
+            seen.add(key)
+            facts.append((loc, f))
+    return facts, bad, dup
+
+
+def _passages(facts: list[str], chunks: list[tuple[str, str]], budget: int) -> tuple[str, bool]:
+    """Source text to judge `facts` against: the whole document if it fits in `budget` chars,
+    otherwise the chunks sharing the most content words with the facts (top 3 per fact) in
+    document order. Second value: True when passages were selected."""
+    if sum(len(c) + len(loc) + 4 for loc, c in chunks) <= budget:
+        return "\n\n".join(f"[{loc}]\n{c}" for loc, c in chunks), False
+    toks = [set(content_tokens(c)) for _, c in chunks]
+    score = Counter()
+    for f in facts:
+        ft = set(content_tokens(f))
+        ranked = sorted(range(len(chunks)), key=lambda i: (-len(ft & toks[i]), i))
+        for rank, i in enumerate(ranked[:3]):
+            if ft & toks[i]:
+                score[i] += 3 - rank
+    picked, size = [], 0
+    for i, _ in sorted(score.items(), key=lambda kv: (-kv[1], kv[0])) or [(0, 0)]:
+        if picked and size + len(chunks[i][1]) > budget:
+            continue
+        picked.append(i)
+        size += len(chunks[i][1])
+    return "\n\n".join(f"[{chunks[i][0]}]\n{chunks[i][1]}" for i in sorted(picked)), True
+
+
+def _judge_facts(J: _Judge, prompt: str, field: str, facts: list[str], chunks: list[tuple[str, str]],
+                 allowed: set, batch: int, budget: int) -> tuple[list[str | None], int]:
+    """A verdict per fact (None if the judge never gave a valid one), judged `batch` facts per
+    call. An unparseable batch is split in half and asked again, down to single facts. Second
+    value: number of batches judged against selected passages rather than the whole document."""
+    out: list[str | None] = [None] * len(facts)
+    todo = [list(range(i, min(i + batch, len(facts)))) for i in range(0, len(facts), batch)]
+    retrieved = 0
+    while todo:
+        reqs = []
+        for ids in todo:
+            src, sel = _passages([facts[i] for i in ids], chunks, budget)
+            retrieved += sel
+            reqs.append({field: src, "facts": _numbered([facts[i] for i in ids])})
+        nxt = []
+        for ids, rep in zip(todo, J.ask_many(prompt, reqs)):
+            v = _verdicts(rep, len(ids), allowed)
+            if v is not None:
+                for i, x in zip(ids, v):
+                    out[i] = x
+            elif len(ids) > 1:
+                nxt += [ids[:len(ids) // 2], ids[len(ids) // 2:]]
+        todo = nxt
+    return out, retrieved
+
+
+@register("genai.atomic_facts_long", "Atomic-fact precision / recall for long documents (LLM judge, chunked)",
+          "Answer quality", _G, kind="judge", suite=False,
+          params=(P("answer"), P("reference"),
+                  P("chunk_chars", "integer", default=6000, help="Characters per extraction chunk"),
+                  P("fact_batch", "integer", default=25, help="Facts judged per judge call"),
+                  P("source_chars", "integer", default=40000,
+                    help="Longest source text sent with one verification call; longer documents are "
+                         "judged against the best-matching passages"),
+                  _MAX_ROWS),
+          description="""genai.atomic_facts for texts too long for one judge call (e.g. a generated report
+vs its ground-truth document). (1) Each text is cut into consecutive chunks of at most chunk_chars (page
+spans are kept from PDF page markers) and atomic facts are extracted chunk by chunk; exact duplicates are
+dropped. (2) Answer facts are verified against the reference (supported / contradicted / not_mentioned)
+and (3) reference facts are checked for coverage by the answer (covered / not_covered), fact_batch facts
+per judge call. A document longer than source_chars is not sent whole: each batch is judged against the
+reference chunks sharing the most content words with its facts, so support phrased with entirely
+different words can be missed (reported in the notes). An unparseable batch is split and re-asked down to
+single facts; facts still without a verdict, and chunks whose extraction failed, are counted and excluded.
+Metrics as in genai.atomic_facts (micro over facts). """ + _JUDGE_NOTE,
+          references=("Min et al. (2023), FActScore: Fine-grained Atomic Evaluation of Factual Precision in Long "
+                      "Form Text Generation, EMNLP", *_JUDGE_REFS))
+def atomic_facts_long(ctx: RunContext, answer, reference, chunk_chars=6000, fact_batch=25, source_chars=40000,
+                      max_rows=None) -> Outcome:
+    if chunk_chars < 500 or fact_batch < 1 or source_chars < chunk_chars:
+        raise ValueError("Need chunk_chars >= 500, fact_batch >= 1 and source_chars >= chunk_chars")
+    J = _Judge(ctx)
+    sub, notes = _judge_rows(ctx, [answer, reference], max_rows)
+    rows, facts, retrieved = [], [], 0
+    for i, row in sub.iterrows():
+        a_chunks, r_chunks = chunk_text(row[answer], chunk_chars), chunk_text(row[reference], chunk_chars)
+        af, a_bad, a_dup = _extract_facts(J, a_chunks)
+        rf, r_bad, r_dup = _extract_facts(J, r_chunks)
+        v_ref, n1 = _judge_facts(J, "fact_verification", "source", [f for _, f in af], r_chunks,
+                                 {"supported", "contradicted", "not_mentioned"}, fact_batch, source_chars)
+        v_cov, n2 = _judge_facts(J, "fact_coverage", "answer", [f for _, f in rf], a_chunks,
+                                 {"covered", "not_covered"}, fact_batch, source_chars)
+        retrieved += n1 + n2
+        ja, jr = [v for v in v_ref if v], [v for v in v_cov if v]
+        c = Counter(ja)
+        rec = {"row": i, "status": "ok" if ja or jr else "unparseable",
+               "answer_chunks": len(a_chunks), "reference_chunks": len(r_chunks),
+               "chunks_unparseable": a_bad + r_bad, "duplicates_dropped": a_dup + r_dup,
+               "answer_facts": len(ja), "supported": c["supported"], "contradicted": c["contradicted"],
+               "not_mentioned": c["not_mentioned"], "reference_facts": len(jr),
+               "covered": jr.count("covered"),
+               "facts_unjudged": len(v_ref) - len(ja) + len(v_cov) - len(jr)}
+        rec["fact_precision"] = rec["supported"] / len(ja) if ja else np.nan
+        rec["fact_recall"] = rec["covered"] / len(jr) if jr else np.nan
+        rec["fact_f1"] = _f1(rec["fact_precision"], rec["fact_recall"])
+        rec["hallucination_rate"] = 1 - rec["fact_precision"] if ja else np.nan
+        rows.append(rec)
+        for (loc, f), v in zip(af, v_ref):
+            facts.append({"row": i, "side": "answer", "location": loc, "fact": f, "verdict": v or "unjudged"})
+        for (loc, f), v in zip(rf, v_cov):
+            facts.append({"row": i, "side": "reference", "location": loc, "fact": f, "verdict": v or "unjudged"})
+    J.check_alive()
+    t = pd.DataFrame(rows)
+    ok = t[t["status"] == "ok"]
+    if ok.empty:
+        raise NotApplicable("No row could be evaluated: every judge reply was unparseable. " + " ".join(J.notes()))
+    na, nr = ok["answer_facts"].sum(), ok["reference_facts"].sum()
+    p = ok["supported"].sum() / na if na else float("nan")
+    r = ok["covered"].sum() / nr if nr else float("nan")
+    summ = {"rows_evaluated": len(ok), "rows_unparseable": int((t["status"] != "ok").sum()),
+            "answer_facts": int(na), "reference_facts": int(nr),
+            "fact_precision_micro": p, "fact_recall_micro": r, "fact_f1_micro": _f1(p, r),
+            "hallucination_rate_micro": 1 - p if na else float("nan"),
+            "contradiction_rate_micro": ok["contradicted"].sum() / na if na else float("nan"),
+            "facts_unjudged": int(t["facts_unjudged"].sum()), "chunks_unparseable": int(t["chunks_unparseable"].sum()),
+            "judge_calls": J.calls}
+    if retrieved:
+        notes.append(f"{retrieved} verification batches used passages selected by word overlap because the "
+                     f"document exceeds source_chars={source_chars}: a fact supported only in other wording "
+                     "may be marked not_mentioned / not_covered.")
+    if summ["chunks_unparseable"]:
+        notes.append(f"{summ['chunks_unparseable']} chunks returned no parseable facts and are missing from the "
+                     "fact lists.")
+    order = {"contradicted": 0, "not_mentioned": 1, "not_covered": 2, "unjudged": 3}
+    pf = pd.DataFrame(facts)
+    if not pf.empty:                      # problems first, so the shown head is the useful part
+        pf = pf.sort_values("verdict", key=lambda s: s.map(order).fillna(9), kind="stable")
+    return Outcome(summ, {"Per row": t, "Per fact": pf}, notes=notes + J.notes(), rows_used=len(ok))
 
 
 @register("genai.faithfulness", "Faithfulness / groundedness to retrieved context (LLM judge)", "Groundedness",

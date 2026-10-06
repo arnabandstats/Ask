@@ -90,6 +90,47 @@ def t_run_validation_test(ctx, test_id: str, params: dict | None = None, source:
     return res.to_text()
 
 
+def _document_text(ctx, ref: str) -> tuple[str, str]:
+    """(label, text) of a loaded document: a source holding one file, 'source:path' or a file name."""
+    reg = ctx.registry
+    try:
+        src = reg.get(ref, "docs", "repo")
+    except KeyError:
+        src = None
+    if src is not None:
+        if len(src.files) == 1:
+            rel = next(iter(src.files))
+            return f"{src.name}:{rel}", src.files[rel]
+        try:
+            src, rel = reg.resolve_file(ref)
+        except KeyError:
+            raise KeyError(f"{src.name} holds {len(src.files)} files; name one as 'source:path': "
+                           + ", ".join(list(src.files)[:20])) from None
+        return f"{src.name}:{rel}", src.files[rel]
+    src, rel = reg.resolve_file(ref)
+    return f"{src.name}:{rel}", src.files[rel]
+
+
+def t_compare_document_facts(ctx, answer: str, reference: str, chunk_chars: int | None = None,
+                             fact_batch: int | None = None, source_chars: int | None = None,
+                             show: bool = True) -> str:
+    from ask.validation.judge import make_judge
+    a_label, a_text = _document_text(ctx, answer)
+    r_label, r_text = _document_text(ctx, reference)
+    ctx.status(f"Atomic facts: {a_label} vs {r_label} (long documents take several minutes)")
+    rctx = vcore.RunContext(df=pd.DataFrame({"answer": [a_text], "reference": [r_text]}),
+                            seed=config.VALIDATION_SEED, judge=make_judge(ctx.judge_model),
+                            source_name=f"{a_label} vs {r_label}")
+    params = {"answer": "answer", "reference": "reference", "chunk_chars": chunk_chars,
+              "fact_batch": fact_batch, "source_chars": source_chars}
+    res = vcore.run_test("genai.atomic_facts_long", rctx, params)
+    _record(ctx, res, show)
+    head = (f"Answer document: {a_label} ({len(a_text):,} chars). Reference (ground truth): {r_label} "
+            f"({len(r_text):,} chars). The full per-fact table is shown to the user; the rows below are "
+            "the problem facts first (contradicted, not_mentioned, not_covered).")
+    return head + "\n" + res.to_text(max_rows=60)
+
+
 def _suite_specs(model_type: str, mapping: dict, areas: list[str] | None, include_judge: bool):
     names = set(mapping)
     out = []
@@ -357,6 +398,21 @@ def schemas(_fn, _S, _SRC, _SHEET) -> list[dict]:
              "areas": strs, "include_judge": {"type": "boolean",
                                               "description": "Also run LLM-judge tests (GenAI)."}},
             ["model_type", "columns"]),
+        _fn("compare_document_facts", "Atomic-fact comparison (FActScore-style, LLM judge) of two LOADED "
+            "documents, e.g. a generated response vs its ground truth (PDF, DOCX, text), however long. "
+            "Pass the document names ('source:path', a file name, or a source holding one file), never "
+            "their text. The tool chunks both documents and judges facts in batches itself, so call it "
+            "once instead of reading the documents first. Returns fact precision/recall/F1, "
+            "hallucination and contradiction rates and the problem facts with page locations. Cite as "
+            "[test:<run_id>].",
+            {"answer": {"type": "string", "description": "The generated response document."},
+             "reference": {"type": "string", "description": "The ground-truth document."},
+             "chunk_chars": {"type": "integer", "description": "Characters per extraction chunk (default 6000)."},
+             "fact_batch": {"type": "integer", "description": "Facts per judge call (default 25)."},
+             "source_chars": {"type": "integer", "description": "Max source text per verification call "
+                              "(default 40000); longer documents use best-matching passages."},
+             "show": {"type": "boolean", "description": "Show the result tables (default true)."}},
+            ["answer", "reference"]),
         _fn("get_test_run", "Retrieve a saved test result by run_id (all tables and provenance).",
             {"run_id": _S}, ["run_id"]),
         _fn("load_model", "Load a model artefact so tests can score it: a .pkl/.joblib file (local, "
@@ -394,11 +450,11 @@ def schemas(_fn, _S, _SRC, _SHEET) -> list[dict]:
 IMPL = {
     "list_validation_tests": t_list_validation_tests, "describe_test": t_describe_test,
     "run_validation_test": t_run_validation_test, "run_validation_suite": t_run_validation_suite,
-    "get_test_run": t_get_test_run, "load_model": t_load_model, "load_table": t_load_table,
+    "compare_document_facts": t_compare_document_facts, "get_test_run": t_get_test_run, "load_model": t_load_model, "load_table": t_load_table,
     "profile_table": t_profile_table, "query_table": t_query_table, "scan_code": t_scan_code,
     "list_standards": t_list_standards, "check_documentation": t_check_documentation,
     "cross_check": t_cross_check,
 }
 TEXT = {"scan_code", "check_documentation", "cross_check"}
-DATA = {"run_validation_test", "run_validation_suite", "get_test_run", "load_model", "load_table",
+DATA = {"run_validation_test", "run_validation_suite", "compare_document_facts", "get_test_run", "load_model", "load_table",
         "profile_table", "query_table"}

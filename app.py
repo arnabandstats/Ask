@@ -47,8 +47,9 @@ if not ss.messages:
         "<p>Give me a path to a repo, documents or data, then ask anything.</p></div>",
         unsafe_allow_html=True)
 
+title = state.chat_title(ss.chat_id)
 for i, m in enumerate(ss.messages):
-    render.message(m, i)
+    render.message(m, i, ss.messages, title)
 
 prompt = st.chat_input("Ask anything, or paste a path to load…")
 
@@ -88,5 +89,6 @@ if prompt:
     if turn.sources_changed:
         store.set_sources(cid, ss.registry.records())
     _retitle(cid, prompt, turn)
+    state.mirror_chat()
     ss.notice = None
     st.rerun()

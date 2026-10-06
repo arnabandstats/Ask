@@ -14,8 +14,8 @@ DB_PATH = DATA_DIR / "chats.db"
 OUTPUT_DIR = DATA_DIR / "outputs"
 
 # Models (same env vars the original app used).
-DEFAULT_MODEL = os.getenv("OPENAI_DEPLOYMENT_NAME", "gpt-4.1")
-DEEP_MODEL = os.getenv("ASK_DEEP_MODEL", "gpt-5.6-luna")
+DEFAULT_MODEL = os.getenv("OPENAI_DEPLOYMENT_NAME", "gpt-5.6-luna")
+DEEP_MODEL = os.getenv("ASK_DEEP_MODEL", "gpt-5.6-sol")
 DEEP_REASONING_EFFORT = os.getenv("ASK_REASONING_EFFORT", "medium")   # low | medium | high
 
 # Validation library (ask/validation).
